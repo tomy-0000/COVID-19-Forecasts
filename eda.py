@@ -5,16 +5,9 @@ import numpy as np
 import seaborn as sns
 sns.set()
 
-df = pd.read_csv("./data/SIGNATE COVID-19 Case Dataset (Tokyo) 2021 - 罹患者_東京_2021.csv")
+df = pd.concat([pd.read_csv("data/tokyo_2020.csv"), pd.read_csv("data/tokyo_2021.csv")])
+print(df.columns)
 display(df.head())
-
-#%% [markdown]
-# # それぞれの列でvalue_counts
-
-#%%
-for c in df:
-    print(df[c].value_counts(dropna=False))
-    print("-"*20)
 
 #%% [markdown]
 # # 前処理
@@ -25,13 +18,18 @@ drop_col = ["都道府県コード", "症例番号", "都道府県症例番号",
             "受診都道府県", "居住都道府県", "居住市区町村", "職業", "症状・経過", "行動歴",
             "濃厚接触者状況", "情報源", "備考", "罹患者関係_記入済ﾌﾗｸﾞ", "Relation1", "Relation2"]
 df = df.drop(columns=drop_col)
-df = df[df["年代"] != "非公開"]
-df = df[pd.notna(df["性別"])]
+df = df.dropna()
+df = df[~df["年代"].isin(["非公開", "非公表"])]
+df = df[df["性別"] != "非公表"]
+
+#%%
+for i in df:
+    display(df[i].value_counts())
 
 #%% [markdown]
 # # 公表日別にカウント
 # - 20代が一番多い
-# - 一回少なくなったが、最近増加している
+# - 波がある
 
 #%%
 # result_df・result_df_rolllingの作成
