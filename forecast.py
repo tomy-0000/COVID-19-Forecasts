@@ -19,6 +19,9 @@ for date, tmp_df in df.groupby("公表日"):
     count_series[date] += len(tmp_df)
 data = count_series.to_numpy()
 
+DEVICE = torch.device("CUDA:0" if torch.cuda.is_available() else "cpu")
+print(DEVICE)
+
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
@@ -54,7 +57,7 @@ class Count(torch.utils.data.Dataset):
 
 seq = 7
 train_dataset = Count(data[:-30], seq)
-val_dataset = Count(data[30:], seq)
+val_dataset = Count(data[-30:], seq)
 # import numpy as np
 # x = np.arange(0, 13, 0.01)
 # y = np.sin(x)
@@ -64,7 +67,7 @@ batch_size = 32
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
 
-net = Net()
+net = Net().to(DEVICE)
 optimizer = torch.optim.Adam(net.parameters())
 criterion = nn.MSELoss()
 criterion2 = nn.L1Loss(reduction="sum")
