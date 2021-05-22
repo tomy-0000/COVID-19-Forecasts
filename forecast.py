@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
-df = pd.concat([pd.read_csv("data/tokyo_2020.csv"), pd.read_csv("data/tokyo_2021.csv")])
+url1 ="https://docs.google.com/spreadsheets/d/1Ot0T8_YZ2Q0dORnKEhcUmuYCqZ1y81PIsIAMB7WZE8g/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2020"
+url2 = "https://docs.google.com/spreadsheets/d/1V1eJM1mupE9gJ6_k0q_77nlFoRuwDuBliMLcMdDMC_E/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2021"
+
+df = pd.concat([pd.read_csv(url1), pd.read_csv(url2)])
 df = df[["公表日", "年代", "性別"]]
 df = df[df["公表日"].notna()]
 start = df["公表日"].iat[0]
@@ -14,7 +17,7 @@ index = pd.date_range(start=start, end=end)
 count_series = pd.Series(0, index=index)
 for date, tmp_df in df.groupby("公表日"):
     count_series[date] += len(tmp_df)
-count = count_series.to_numpy()
+data = count_series.to_numpy()
 
 class Net(nn.Module):
     def __init__(self):
@@ -27,10 +30,21 @@ class Net(nn.Module):
         y = self.linear(x[:, 0, :])
         return y
 
-class Count(torch.utils.data.Dataset):
-    def __init__(self, count, seq):
+class Sin(torch.utils.data.Dataset):
+    def __init__(self, data, seq):
         self.seq = seq
-        self.data = torch.from_numpy(count.reshape(-1, 1)).float()
+        self.data = torch.from_numpy(data.reshape(-1, 1)).float()
+
+    def __getitem__(self, idx):
+        return self.data[idx:idx + self.seq], self.data[idx + self.seq]
+
+    def __len__(self):
+        return len(self.data) - self.seq
+
+class Count(torch.utils.data.Dataset):
+    def __init__(self, data, seq):
+        self.seq = seq
+        self.data = torch.from_numpy(data.reshape(-1, 1)).float()
 
     def __getitem__(self, idx):
         return self.data[idx:idx + self.seq], self.data[idx + self.seq]
@@ -39,8 +53,13 @@ class Count(torch.utils.data.Dataset):
         return len(self.data) - self.seq
 
 seq = 7
-train_dataset = Count(count[:-30], seq)
-val_dataset = Count(count[30:], seq)
+train_dataset = Count(data[:-30], seq)
+val_dataset = Count(data[30:], seq)
+# import numpy as np
+# x = np.arange(0, 13, 0.01)
+# y = np.sin(x)
+# train_dataset = Sin(y[:650], seq)
+# val_dataset = Sin(y[650:], seq)
 batch_size = 32
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
@@ -76,7 +95,7 @@ for i in tqdm(range(epoch)):
                 epoch_mae += criterion2(outputs, labels).detach()
             epoch_loss /= len(dataloader_dict[phase].dataset)
             epoch_mae /= len(dataloader_dict[phase].dataset)
-            if i % epoch//10 == 0:
+            if i % 100 == 0:
                 tqdm.write(f"{phase}_epoch_loss: {epoch_loss}")
                 tqdm.write(f"{phase}_epoch_mae: {epoch_mae}")
             result_dict[phase+"_loss"].append(epoch_loss)
@@ -87,3 +106,14 @@ plt.plot(result_dict["val_loss"])
 plt.figure()
 plt.plot(result_dict["train_mae"])
 plt.plot(result_dict["val_mae"])
+
+for phase in ["train", "val"]:
+    pred = []
+    label = []
+    with torch.set_grad_enabled(False):
+        for inputs, labels in dataloader_dict[phase]:
+            pred += net(inputs).detach().numpy().tolist()
+            label += labels.numpy().tolist()
+    plt.figure()
+    plt.plot(pred)
+    plt.plot(label)
