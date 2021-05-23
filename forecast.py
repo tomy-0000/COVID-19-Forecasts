@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -148,7 +148,6 @@ def run(train_dataset, val_dataset, batch_size, epoch):
     plt.title("pred_val")
 
 #%%
-# デバッグ用
 x = np.arange(0, 30, 0.1)
 y = np.sin(x) + np.random.rand(*x.shape)/2
 seq = 10
@@ -165,5 +164,14 @@ val_len = 150
 train_dataset = Count(data[:-val_len], seq)
 val_dataset = Count(data[-val_len:], seq)
 batch_size = 32
-epoch = 10000
+epoch = 15000
+run(train_dataset, val_dataset, batch_size, epoch)
+
+#%%
+seq = 100
+val_len = 150
+train_dataset = Count(data_rolling[:-val_len], seq)
+val_dataset = Count(data_rolling[-val_len:], seq)
+batch_size = 32
+epoch = 15000
 run(train_dataset, val_dataset, batch_size, epoch)
