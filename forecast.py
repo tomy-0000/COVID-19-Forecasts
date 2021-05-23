@@ -72,6 +72,7 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
                    "val_loss": [], "val_mae": []}
     best_dict = {"mae_loss": 1e10, "state_dict": None, "epoch": 0}
 
+    show_progress = epoch // 100
     for i in tqdm(range(epoch)):
         for phase in ["train", "val"]:
             if phase == "train":
@@ -94,7 +95,7 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
                     epoch_mae += criterion2(outputs, label).detach()
             epoch_loss /= len(dataloader_dict[phase].dataset)
             epoch_mae /= len(dataloader_dict[phase].dataset)
-            if i % 100 == 0:
+            if i % show_progress == 0:
                 tqdm.write(f"{i}_{phase}_epoch_loss: {epoch_loss}")
                 tqdm.write(f"{i}_{phase}_epoch_mae: {epoch_mae}")
             result_dict[phase+"_loss"].append(epoch_loss)
@@ -156,10 +157,11 @@ val_len = 100
 val_len += seq
 train_dataset = Sin(y[:-val_len], seq)
 val_dataset = Sin(y[-val_len:], seq)
-batch_size = 32
-epoch = 500
+batch_size = 8192
+epoch = 2000
 run(train_dataset, val_dataset, batch_size, epoch, seq)
 
+#%%
 #%%
 seq = 30
 val_len = 30
@@ -167,17 +169,17 @@ val_len = 30
 val_len += seq
 train_dataset = Count(data[:-val_len], seq)
 val_dataset = Count(data[-val_len:], seq)
-batch_size = 32
-epoch = 500
+batch_size = 8192
+epoch = 50000
 run(train_dataset, val_dataset, batch_size, epoch, seq)
 
 #%%
 seq = 30
-val_len = 100
+val_len = 30
 
 val_len += seq
 train_dataset = Count(data_rolling[:-val_len], seq)
 val_dataset = Count(data_rolling[-val_len:], seq)
-batch_size = 32
-epoch = 15000
+batch_size = 8192
+epoch = 50000
 run(train_dataset, val_dataset, batch_size, epoch, seq)
