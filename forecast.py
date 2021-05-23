@@ -1,4 +1,5 @@
 #%%
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -19,7 +20,8 @@ for date, tmp_df in df.groupby("公表日"):
     count_series[date] += len(tmp_df)
 data = count_series.to_numpy()
 
-DEVICE = torch.device("CUDA:0" if torch.cuda.is_available() else "cpu")
+#%%
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
 
 class Net(nn.Module):
@@ -56,18 +58,22 @@ class Count(torch.utils.data.Dataset):
         return len(self.data) - self.seq
 
 seq = 7
-train_dataset = Count(data[:-30], seq)
-val_dataset = Count(data[-30:], seq)
-# import numpy as np
-# x = np.arange(0, 13, 0.01)
-# y = np.sin(x)
-# train_dataset = Sin(y[:650], seq)
-# val_dataset = Sin(y[650:], seq)
+val_len = 60
+train_dataset = Count(data[:-val_len], seq)
+val_dataset = Count(data[-val_len:], seq)
+
+# デバッグ用(sin(x)*x)
+# x = np.arange(0, 20, 0.01)
+# y = np.sin(x)*x
+# train_dataset = Sin(y[:1000], seq)
+# val_dataset = Sin(y[1000:], seq)
+
 batch_size = 32
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
 
-net = Net().to(DEVICE)
+net = Net()
+net.to(DEVICE)
 optimizer = torch.optim.Adam(net.parameters())
 criterion = nn.MSELoss()
 criterion2 = nn.L1Loss(reduction="sum")
@@ -76,7 +82,7 @@ result_dict = {"train_loss": [], "train_mae": [],
                "val_loss": [], "val_mae": []}
 dataloader_dict = {"train": train_dataloader, "val": val_dataloader}
 
-epoch = 100
+epoch = 5000
 
 for i in tqdm(range(epoch)):
     for phase in ["train", "val"]:
@@ -87,36 +93,45 @@ for i in tqdm(range(epoch)):
         epoch_loss = 0
         epoch_mae = 0
         with torch.set_grad_enabled(phase == "train"):
-            for inputs, labels in dataloader_dict[phase]:
+            for inputs, label in dataloader_dict[phase]:
+                inputs = inputs.to(DEVICE)
+                label = label.to(DEVICE)
                 optimizer.zero_grad()
                 outputs = net(inputs)
-                loss = criterion(outputs, labels)
+                loss = criterion(outputs, label)
                 if phase == "train":
                     loss.backward()
                     optimizer.step()
                 epoch_loss += loss.item()*inputs.size(0)
-                epoch_mae += criterion2(outputs, labels).detach()
-            epoch_loss /= len(dataloader_dict[phase].dataset)
-            epoch_mae /= len(dataloader_dict[phase].dataset)
-            if i % 100 == 0:
-                tqdm.write(f"{phase}_epoch_loss: {epoch_loss}")
-                tqdm.write(f"{phase}_epoch_mae: {epoch_mae}")
-            result_dict[phase+"_loss"].append(epoch_loss)
-            result_dict[phase+"_mae"].append(epoch_mae)
-plt.figure()
+                epoch_mae += criterion2(outputs, label).detach()
+        epoch_loss /= len(dataloader_dict[phase].dataset)
+        epoch_mae /= len(dataloader_dict[phase].dataset)
+        if i % 100 == 0:
+            tqdm.write(f"{i}_{phase}_epoch_loss: {epoch_loss}")
+            tqdm.write(f"{i}_{phase}_epoch_mae: {epoch_mae}")
+        result_dict[phase+"_loss"].append(epoch_loss)
+        result_dict[phase+"_mae"].append(epoch_mae)
+plt.figure(figsize=(12, 8))
 plt.plot(result_dict["train_loss"])
 plt.plot(result_dict["val_loss"])
-plt.figure()
+plt.title("mse")
+plt.figure(figsize=(12, 8))
 plt.plot(result_dict["train_mae"])
 plt.plot(result_dict["val_mae"])
+plt.title("mae")
 
-for phase in ["train", "val"]:
-    pred = []
-    label = []
-    with torch.set_grad_enabled(False):
-        for inputs, labels in dataloader_dict[phase]:
-            pred += net(inputs).detach().numpy().tolist()
-            label += labels.numpy().tolist()
-    plt.figure()
-    plt.plot(pred)
-    plt.plot(label)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=1)
+pred_list = val_dataset[0][0].numpy().tolist()
+label_list = []
+net.to("cpu")
+with torch.set_grad_enabled(False):
+    net.eval()
+    for _, label in val_dataloader:
+        inputs = torch.from_numpy(np.array(pred_list[-seq:])).unsqueeze(0).float()
+        out = net(inputs)
+        pred_list.append([out.item()])
+        label_list.append(label.item())
+plt.figure(figsize=(12, 8))
+plt.plot(pred_list[seq:])
+plt.plot(label_list)
+plt.title("pred")
