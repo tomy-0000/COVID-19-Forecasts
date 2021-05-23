@@ -58,7 +58,7 @@ class Count(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.data) - self.seq
 
-def run(train_dataset, val_dataset, batch_size, epoch):
+def run(train_dataset, val_dataset, batch_size, epoch, seq):
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
     dataloader_dict = {"train": train_dataloader, "val": val_dataloader}
@@ -150,28 +150,34 @@ def run(train_dataset, val_dataset, batch_size, epoch):
 #%%
 x = np.arange(0, 30, 0.1)
 y = np.sin(x) + np.random.rand(*x.shape)/2
-seq = 10
+seq = 50
 val_len = 100
+
+val_len += seq
 train_dataset = Sin(y[:-val_len], seq)
 val_dataset = Sin(y[-val_len:], seq)
 batch_size = 32
-epoch = 5000
-run(train_dataset, val_dataset, batch_size, epoch)
+epoch = 500
+run(train_dataset, val_dataset, batch_size, epoch, seq)
 
 #%%
-seq = 100
-val_len = 150
+seq = 30
+val_len = 30
+
+val_len += seq
 train_dataset = Count(data[:-val_len], seq)
 val_dataset = Count(data[-val_len:], seq)
 batch_size = 32
-epoch = 15000
-run(train_dataset, val_dataset, batch_size, epoch)
+epoch = 500
+run(train_dataset, val_dataset, batch_size, epoch, seq)
 
 #%%
-seq = 100
-val_len = 150
+seq = 30
+val_len = 100
+
+val_len += seq
 train_dataset = Count(data_rolling[:-val_len], seq)
 val_dataset = Count(data_rolling[-val_len:], seq)
 batch_size = 32
 epoch = 15000
-run(train_dataset, val_dataset, batch_size, epoch)
+run(train_dataset, val_dataset, batch_size, epoch, seq)
