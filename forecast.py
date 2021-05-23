@@ -69,6 +69,7 @@ def run(train_dataset, val_dataset, batch_size, epoch):
     criterion2 = nn.L1Loss(reduction="sum")
     result_dict = {"train_loss": [], "train_mae": [],
                    "val_loss": [], "val_mae": []}
+    best_dict = {"mae_loss": 1e10, "state_dict": None, "epoch": 0}
 
     for i in tqdm(range(epoch)):
         for phase in ["train", "val"]:
@@ -97,6 +98,11 @@ def run(train_dataset, val_dataset, batch_size, epoch):
                 tqdm.write(f"{i}_{phase}_epoch_mae: {epoch_mae}")
             result_dict[phase+"_loss"].append(epoch_loss)
             result_dict[phase+"_mae"].append(epoch_mae)
+            if phase == "val" and epoch_mae < best_dict["mae_loss"]:
+                best_dict["mae_loss"] = epoch_mae
+                best_dict["state_dict"] = net.state_dict()
+                best_dict["epoch"] = i + 1
+
     plt.figure(figsize=(12, 8))
     plt.plot(result_dict["train_loss"])
     plt.plot(result_dict["val_loss"])
@@ -106,10 +112,13 @@ def run(train_dataset, val_dataset, batch_size, epoch):
     plt.plot(result_dict["val_mae"])
     plt.title("mae")
 
+    print("best_epoch:", best_dict["epoch"])
+    net.load_state_dict(best_dict["state_dict"])
+    net.to("cpu")
+
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1)
     pred_list = train_dataset[0][0].numpy().tolist()
     label_list = []
-    net.to("cpu")
     with torch.set_grad_enabled(False):
         net.eval()
         for _, label in train_dataloader:
@@ -125,7 +134,6 @@ def run(train_dataset, val_dataset, batch_size, epoch):
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=1)
     pred_list = val_dataset[0][0].numpy().tolist()
     label_list = []
-    net.to("cpu")
     with torch.set_grad_enabled(False):
         net.eval()
         for _, label in val_dataloader:
@@ -151,7 +159,7 @@ epoch = 5000
 run(train_dataset, val_dataset, batch_size, epoch)
 
 #%%
-seq = 7
+seq = 100
 val_len = 60
 train_dataset = Count(data[:-val_len], seq)
 val_dataset = Count(data[-val_len:], seq)
