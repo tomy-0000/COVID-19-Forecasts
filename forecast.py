@@ -19,6 +19,7 @@ count_series = pd.Series(0, index=index)
 for date, tmp_df in df.groupby("公表日"):
     count_series[date] += len(tmp_df)
 data = count_series.to_numpy()
+data_rolling = count_series.rolling(7).mean().dropna().to_numpy()
 
 #%%
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -148,10 +149,10 @@ def run(train_dataset, val_dataset, batch_size, epoch):
 
 #%%
 # デバッグ用
-x = np.arange(0, 20, 0.1)
+x = np.arange(0, 30, 0.1)
 y = np.sin(x) + np.random.rand(*x.shape)/2
 seq = 10
-val_len = 60
+val_len = 100
 train_dataset = Sin(y[:-val_len], seq)
 val_dataset = Sin(y[-val_len:], seq)
 batch_size = 32
@@ -160,9 +161,9 @@ run(train_dataset, val_dataset, batch_size, epoch)
 
 #%%
 seq = 100
-val_len = 60
+val_len = 150
 train_dataset = Count(data[:-val_len], seq)
 val_dataset = Count(data[-val_len:], seq)
 batch_size = 32
-epoch = 5000
+epoch = 10000
 run(train_dataset, val_dataset, batch_size, epoch)
