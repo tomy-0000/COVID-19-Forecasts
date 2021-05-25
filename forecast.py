@@ -5,6 +5,7 @@ from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 url1 ="https://docs.google.com/spreadsheets/d/1Ot0T8_YZ2Q0dORnKEhcUmuYCqZ1y81PIsIAMB7WZE8g/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2020"
 url2 = "https://docs.google.com/spreadsheets/d/1V1eJM1mupE9gJ6_k0q_77nlFoRuwDuBliMLcMdDMC_E/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2021"
@@ -67,7 +68,6 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
     net.to(DEVICE)
     optimizer = torch.optim.Adam(net.parameters())
     criterion = nn.MSELoss()
-    criterion2 = nn.L1Loss(reduction="sum")
     result_dict = {"train_loss": [], "train_mae": [],
                    "val_loss": [], "val_mae": []}
     best_dict = {"mae_loss": 1e10, "state_dict": None, "epoch": 0}
@@ -92,7 +92,7 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
                         loss.backward()
                         optimizer.step()
                     epoch_loss += loss.item()*inputs.size(0)
-                    epoch_mae += criterion2(outputs, label).detach()
+                    epoch_mae += F.l1_loss(outputs, label, reduction="sum").item()
             epoch_loss /= len(dataloader_dict[phase].dataset)
             epoch_mae /= len(dataloader_dict[phase].dataset)
             if i % show_progress == 0:
@@ -161,7 +161,6 @@ batch_size = 8192
 epoch = 2000
 run(train_dataset, val_dataset, batch_size, epoch, seq)
 
-#%%
 #%%
 seq = 30
 val_len = 30
