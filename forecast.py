@@ -157,25 +157,12 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
     plt.legend()
 
 #%%
-x = np.arange(0, 30, 0.1)
-y = np.sin(x) + np.random.rand(*x.shape)/2
-seq = 20
-val_len = 100
-
-val_len += seq
-train_dataset = Sin(y[:-val_len], seq)
-val_dataset = Sin(y[-val_len:], seq)
-batch_size = 8192
-epoch = 100
-run(train_dataset, val_dataset, batch_size, epoch, seq)
-
-#%%
 seq = 100
 val_len = 30
 
 val_len += seq
 data2 = data[100:]
-data2 = data2/max(data2)
+data2 = (data2 - np.mean(data2[:, 0]))/np.std(data2[:, 0])
 train_dataset = Count(data2[:-val_len], seq)
 val_dataset = Count(data2[-val_len:], seq)
 batch_size = 200
