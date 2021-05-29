@@ -16,11 +16,13 @@ df = df[df["公表日"].notna()]
 start = df["公表日"].iat[0]
 end = df["公表日"].iat[-1]
 index = pd.date_range(start=start, end=end)
-count_series = pd.Series(0, index=index)
+df2 = pd.DataFrame(0, columns=["count", "day_name"], index=index)
 for date, tmp_df in df.groupby("公表日"):
-    count_series[date] += len(tmp_df)
-data = count_series.to_numpy()
-data_rolling = count_series.rolling(7).mean().dropna().to_numpy()
+    df2.loc[date, "count"] += len(tmp_df)
+df2["day_name"] = df2.index.day_name()
+df2 = pd.get_dummies(df2, prefix="", prefix_sep="")
+data = df2.to_numpy()
+# data_rolling = df.rolling(7).mean().dropna().to_numpy()
 
 #%%
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -29,7 +31,7 @@ print(DEVICE)
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.lstm = nn.LSTM(1, 32, num_layers=1, batch_first=True)
+        self.lstm = nn.LSTM(8, 32, num_layers=1, batch_first=True)
         self.linear = nn.Linear(32, 1)
 
     def forward(self, x):
@@ -115,7 +117,7 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
     plt.title("mae")
 
     print("best_epoch:", best_dict["epoch"])
-    net.load_state_dict(best_dict["state_dict"])
+    # net.load_state_dict(best_dict["state_dict"])
     net.to("cpu")
 
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1)
@@ -128,10 +130,13 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
             out = net(inputs)
             pred_list.append([out.item()])
             label_list.append(label.item())
+    pred_list = [i[0] for i in pred_list]
     plt.figure(figsize=(12, 8))
-    plt.plot(pred_list[seq:])
-    plt.plot(label_list)
+    plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
+    plt.plot(range(len(pred_list)), pred_list, label="predict")
+    plt.plot(range(len(pred_list)), pred_list[:seq]+label_list, label="gt")
     plt.title("pred_train")
+    plt.legend()
 
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=1)
     pred_list = val_dataset[0][0].numpy().tolist()
@@ -143,42 +148,47 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
             out = net(inputs)
             pred_list.append([out.item()])
             label_list.append(label.item())
+    pred_list = [i[0] for i in pred_list]
     plt.figure(figsize=(12, 8))
-    plt.plot(pred_list[seq:])
-    plt.plot(label_list)
+    plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
+    plt.plot(range(len(pred_list)), pred_list, label="predict")
+    plt.plot(range(len(pred_list)), pred_list[:seq]+label_list, label="gt")
     plt.title("pred_val")
+    plt.legend()
 
 #%%
 x = np.arange(0, 30, 0.1)
 y = np.sin(x) + np.random.rand(*x.shape)/2
-seq = 50
+seq = 20
 val_len = 100
 
 val_len += seq
 train_dataset = Sin(y[:-val_len], seq)
 val_dataset = Sin(y[-val_len:], seq)
 batch_size = 8192
-epoch = 2000
+epoch = 100
 run(train_dataset, val_dataset, batch_size, epoch, seq)
 
 #%%
-seq = 30
+seq = 100
 val_len = 30
 
 val_len += seq
-train_dataset = Count(data[:-val_len], seq)
-val_dataset = Count(data[-val_len:], seq)
-batch_size = 8192
-epoch = 50000
+data2 = data[100:]
+data2 = data2/max(data2)
+train_dataset = Count(data2[:-val_len], seq)
+val_dataset = Count(data2[-val_len:], seq)
+batch_size = 200
+epoch = 1000
 run(train_dataset, val_dataset, batch_size, epoch, seq)
 
 #%%
-seq = 30
-val_len = 30
+# seq = 30
+# val_len = 30
 
-val_len += seq
-train_dataset = Count(data_rolling[:-val_len], seq)
-val_dataset = Count(data_rolling[-val_len:], seq)
-batch_size = 8192
-epoch = 50000
-run(train_dataset, val_dataset, batch_size, epoch, seq)
+# val_len += seq
+# train_dataset = Count(data_rolling[:-val_len], seq)
+# val_dataset = Count(data_rolling[-val_len:], seq)
+# batch_size = 8192
+# epoch = 50000
+# run(train_dataset, val_dataset, batch_size, epoch, seq)
