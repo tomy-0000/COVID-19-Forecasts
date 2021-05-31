@@ -29,9 +29,9 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, feature_num):
         super().__init__()
-        self.lstm = nn.LSTM(8, 32, num_layers=1, batch_first=True)
+        self.lstm = nn.LSTM(feature_num, 32, num_layers=1, batch_first=True)
         self.linear = nn.Linear(32, 1)
 
     def forward(self, x):
@@ -39,34 +39,46 @@ class Net(nn.Module):
         y = self.linear(x[:, -1, :])
         return y
 
-class Sin(torch.utils.data.Dataset):
+class Dataset(torch.utils.data.Dataset):
     def __init__(self, data, seq):
         self.seq = seq
-        self.data = torch.from_numpy(data.reshape(-1, 1)).float()
+        self.data = torch.from_numpy(data).float()
 
     def __getitem__(self, idx):
-        return self.data[idx:idx + self.seq], self.data[idx + self.seq]
+        return self.data[idx:idx + self.seq], self.data[idx + self.seq, 0].unsqueeze(0)
 
     def __len__(self):
         return len(self.data) - self.seq
 
-class Count(torch.utils.data.Dataset):
-    def __init__(self, data, seq):
+    def get_label(self):
+        return self.data[:, 0].numpy()
+
+    def get_feature(self, idx):
+        return self.data[idx + self.seq, 1:].numpy()
+
+class TrainVal:
+    def __init__(self, data, seq, val_len, batch_size=32, normalization_idx=[0]):
+        self.data = data
+        self.feature_num = data.shape[1]
         self.seq = seq
-        self.data = torch.from_numpy(data.reshape(-1, 1)).float()
+        self.val_len = val_len + seq
+        train_data = data[:-val_len]
+        val_data = data[-val_len:]
+        self.normalization_idx = normalization_idx
+        self.mean = np.mean(train_data[:, normalization_idx], axis=0)
+        self.std = np.std(train_data[:, normalization_idx], axis=0)
+        train_data[normalization_idx] = (train_data[normalization_idx] - self.mean)/self.std
+        val_data[normalization_idx] = (val_data[normalization_idx] - self.mean)/self.std
+        self.train_dataset = Dataset(train_data, seq)
+        self.val_dataset = Dataset(val_data, seq)
+        train_dataloader = torch.utils.data.DataLoader(self.train_dataset, batch_size=batch_size)
+        val_dataloader = torch.utils.data.DataLoader(self.val_dataset, batch_size=batch_size)
+        self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader}
 
-    def __getitem__(self, idx):
-        return self.data[idx:idx + self.seq], self.data[idx + self.seq]
+def run(train_val, epoch):
+    dataloader_dict = train_val.dataloader_dict
 
-    def __len__(self):
-        return len(self.data) - self.seq
-
-def run(train_dataset, val_dataset, batch_size, epoch, seq):
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
-    dataloader_dict = {"train": train_dataloader, "val": val_dataloader}
-
-    net = Net()
+    net = Net(train_val.feature_num)
     net.to(DEVICE)
     optimizer = torch.optim.Adam(net.parameters())
     criterion = nn.MSELoss()
@@ -119,55 +131,54 @@ def run(train_dataset, val_dataset, batch_size, epoch, seq):
     print("best_epoch:", best_dict["epoch"])
     # net.load_state_dict(best_dict["state_dict"])
     net.to("cpu")
+    net.eval()
+    seq = train_val.seq
 
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1)
-    pred_list = train_dataset[0][0].numpy().tolist()
-    label_list = []
+    train_dataset = train_val.train_dataset
+    pred_list = train_dataset[0][0].numpy()
+    label_list = train_dataset.get_label()
     with torch.set_grad_enabled(False):
-        net.eval()
-        for _, label in train_dataloader:
-            inputs = torch.from_numpy(np.array(pred_list[-seq:])).unsqueeze(0).float()
+        for i in range(len(train_dataset)):
+            inputs = torch.from_numpy(pred_list[-seq:]).unsqueeze(0)
             out = net(inputs)
-            pred_list.append([out.item()])
-            label_list.append(label.item())
-    pred_list = [i[0] for i in pred_list]
+            out = out.numpy()
+            feature = train_dataset.get_feature(i)
+            out = np.append(out, feature)
+            pred_list = np.vstack([pred_list, out])
+    pred_list = pred_list[:, 0]
     plt.figure(figsize=(12, 8))
     plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
-    plt.plot(range(len(pred_list)), pred_list, label="predict")
-    plt.plot(range(len(pred_list)), pred_list[:seq]+label_list, label="gt")
+    plt.plot(pred_list, label="predict")
+    plt.plot(label_list, label="gt")
     plt.title("pred_train")
     plt.legend()
 
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=1)
-    pred_list = val_dataset[0][0].numpy().tolist()
-    label_list = []
+    val_dataset = train_val.val_dataset
+    pred_list = val_dataset[0][0].numpy()
+    label_list = val_dataset.get_label()
     with torch.set_grad_enabled(False):
-        net.eval()
-        for _, label in val_dataloader:
-            inputs = torch.from_numpy(np.array(pred_list[-seq:])).unsqueeze(0).float()
+        for i in range(len(val_dataset)):
+            inputs = torch.from_numpy(pred_list[-seq:]).unsqueeze(0)
             out = net(inputs)
-            pred_list.append([out.item()])
-            label_list.append(label.item())
-    pred_list = [i[0] for i in pred_list]
+            out = out.numpy()
+            feature = val_dataset.get_feature(i)
+            out = np.append(out, feature)
+            pred_list = np.vstack([pred_list, out])
+    pred_list = pred_list[:, 0]
     plt.figure(figsize=(12, 8))
     plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
-    plt.plot(range(len(pred_list)), pred_list, label="predict")
-    plt.plot(range(len(pred_list)), pred_list[:seq]+label_list, label="gt")
-    plt.title("pred_val")
+    plt.plot(pred_list, label="predict")
+    plt.plot(label_list, label="gt")
+    plt.title("pred_train")
     plt.legend()
 
-#%%
-seq = 100
+seq = 5
 val_len = 30
-
-val_len += seq
-data2 = data[100:]
-data2 = (data2 - np.mean(data2[:, 0]))/np.std(data2[:, 0])
-train_dataset = Count(data2[:-val_len], seq)
-val_dataset = Count(data2[-val_len:], seq)
 batch_size = 200
-epoch = 1000
-run(train_dataset, val_dataset, batch_size, epoch, seq)
+
+train_val = TrainVal(data[100:], seq, val_len, batch_size)
+epoch = 100
+run(train_val, epoch)
 
 #%%
 # seq = 30
@@ -179,3 +190,5 @@ run(train_dataset, val_dataset, batch_size, epoch, seq)
 # batch_size = 8192
 # epoch = 50000
 # run(train_dataset, val_dataset, batch_size, epoch, seq)
+
+np.mean(data[:, [0, 1]], axis=0)
