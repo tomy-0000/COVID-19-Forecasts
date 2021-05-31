@@ -21,7 +21,10 @@ for date, tmp_df in df.groupby("公表日"):
     df2.loc[date, "count"] += len(tmp_df)
 df2["day_name"] = df2.index.day_name()
 df2 = pd.get_dummies(df2, prefix="", prefix_sep="")
-data = df2.to_numpy()
+columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+df2 = df2.loc[:, columns]
+#%%
+data = df2.to_numpy(dtype=float)
 # data_rolling = df.rolling(7).mean().dropna().to_numpy()
 
 #%%
@@ -45,7 +48,7 @@ class Dataset(torch.utils.data.Dataset):
         self.data = torch.from_numpy(data).float()
 
     def __getitem__(self, idx):
-        return self.data[idx:idx + self.seq], self.data[idx + self.seq, 0].unsqueeze(0)
+        return self.data[idx:idx + self.seq], self.data[idx + self.seq, [0]]
 
     def __len__(self):
         return len(self.data) - self.seq
@@ -58,22 +61,29 @@ class Dataset(torch.utils.data.Dataset):
 
 class TrainVal:
     def __init__(self, data, seq, val_len, batch_size=32, normalization_idx=[0]):
-        self.data = data
+        data = data.copy()
         self.feature_num = data.shape[1]
         self.seq = seq
         self.val_len = val_len + seq
         train_data = data[:-val_len]
         val_data = data[-val_len:]
+
         self.normalization_idx = normalization_idx
         self.mean = np.mean(train_data[:, normalization_idx], axis=0)
         self.std = np.std(train_data[:, normalization_idx], axis=0)
-        train_data[normalization_idx] = (train_data[normalization_idx] - self.mean)/self.std
-        val_data[normalization_idx] = (val_data[normalization_idx] - self.mean)/self.std
-        self.train_dataset = Dataset(train_data, seq)
-        self.val_dataset = Dataset(val_data, seq)
-        train_dataloader = torch.utils.data.DataLoader(self.train_dataset, batch_size=batch_size)
-        val_dataloader = torch.utils.data.DataLoader(self.val_dataset, batch_size=batch_size)
+        train_data[:, normalization_idx] = (train_data[:, normalization_idx] - self.mean)/self.std
+        val_data[:, normalization_idx] = (val_data[:, normalization_idx] - self.mean)/self.std
+
+        train_dataset = Dataset(train_data, seq)
+        val_dataset = Dataset(val_data, seq)
+        self.dataset_dict = {"train": train_dataset, "val": val_dataset}
+
+        train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
+        val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
         self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader}
+
+    def inverse_standard(self, data):
+        return data*self.std + self.mean
 
 def run(train_val, epoch):
     dataloader_dict = train_val.dataloader_dict
@@ -89,6 +99,7 @@ def run(train_val, epoch):
     show_progress = epoch // 100
     for i in tqdm(range(epoch)):
         for phase in ["train", "val"]:
+            dataloader = dataloader_dict[phase]
             if phase == "train":
                 net.train()
             else:
@@ -96,7 +107,7 @@ def run(train_val, epoch):
             epoch_loss = 0
             epoch_mae = 0
             with torch.set_grad_enabled(phase == "train"):
-                for inputs, label in dataloader_dict[phase]:
+                for inputs, label in dataloader:
                     inputs = inputs.to(DEVICE)
                     label = label.to(DEVICE)
                     optimizer.zero_grad()
@@ -107,8 +118,9 @@ def run(train_val, epoch):
                         optimizer.step()
                     epoch_loss += loss.item()*inputs.size(0)
                     epoch_mae += F.l1_loss(outputs, label, reduction="sum").item()
-            epoch_loss /= len(dataloader_dict[phase].dataset)
-            epoch_mae /= len(dataloader_dict[phase].dataset)
+            data_len = len(dataloader.dataset)
+            epoch_loss /= data_len
+            epoch_mae /= data_len
             if i % show_progress == 0:
                 tqdm.write(f"{i}_{phase}_epoch_loss: {epoch_loss}")
                 tqdm.write(f"{i}_{phase}_epoch_mae: {epoch_mae}")
@@ -132,52 +144,37 @@ def run(train_val, epoch):
     # net.load_state_dict(best_dict["state_dict"])
     net.to("cpu")
     net.eval()
-    seq = train_val.seq
+    dataset_dict = train_val.dataset_dict
 
-    train_dataset = train_val.train_dataset
-    pred_list = train_dataset[0][0].numpy()
-    label_list = train_dataset.get_label()
-    with torch.set_grad_enabled(False):
-        for i in range(len(train_dataset)):
-            inputs = torch.from_numpy(pred_list[-seq:]).unsqueeze(0)
-            out = net(inputs)
-            out = out.numpy()
-            feature = train_dataset.get_feature(i)
-            out = np.append(out, feature)
-            pred_list = np.vstack([pred_list, out])
-    pred_list = pred_list[:, 0]
-    plt.figure(figsize=(12, 8))
-    plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
-    plt.plot(pred_list, label="predict")
-    plt.plot(label_list, label="gt")
-    plt.title("pred_train")
-    plt.legend()
+    for phase in ["train", "val"]:
+        dataset = dataset_dict[phase]
+        seq = dataset.seq
 
-    val_dataset = train_val.val_dataset
-    pred_list = val_dataset[0][0].numpy()
-    label_list = val_dataset.get_label()
-    with torch.set_grad_enabled(False):
-        for i in range(len(val_dataset)):
-            inputs = torch.from_numpy(pred_list[-seq:]).unsqueeze(0)
-            out = net(inputs)
-            out = out.numpy()
-            feature = val_dataset.get_feature(i)
-            out = np.append(out, feature)
-            pred_list = np.vstack([pred_list, out])
-    pred_list = pred_list[:, 0]
-    plt.figure(figsize=(12, 8))
-    plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
-    plt.plot(pred_list, label="predict")
-    plt.plot(label_list, label="gt")
-    plt.title("pred_train")
-    plt.legend()
+        pred_list = dataset[0][0].numpy()
+        label_list = dataset.get_label()
+        with torch.set_grad_enabled(False):
+            for i in range(len(dataset)):
+                inputs = torch.from_numpy(pred_list[-seq:]).unsqueeze(0)
+                out = net(inputs).numpy()
+                feature = dataset.get_feature(i)
+                out = np.append(out, feature)
+                pred_list = np.vstack([pred_list, out])
+        pred_list = pred_list[:, 0]
+        pred_list = train_val.inverse_standard(pred_list)
+        label_list = train_val.inverse_standard(label_list)
+        plt.figure(figsize=(12, 8))
+        plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
+        plt.plot(pred_list, label="predict")
+        plt.plot(label_list, label="gt")
+        plt.title("pred_train")
+        plt.legend()
 
 seq = 5
 val_len = 30
 batch_size = 200
 
-train_val = TrainVal(data[100:], seq, val_len, batch_size)
-epoch = 100
+train_val = TrainVal(data, seq, val_len, batch_size)
+epoch = 10000
 run(train_val, epoch)
 
 #%%
@@ -191,4 +188,6 @@ run(train_val, epoch)
 # epoch = 50000
 # run(train_dataset, val_dataset, batch_size, epoch, seq)
 
-np.mean(data[:, [0, 1]], axis=0)
+a = data[0:, 0]
+b = (a - np.mean(a))/np.std(a)
+plt.plot(b)
