@@ -23,7 +23,6 @@ df2["day_name"] = df2.index.day_name()
 df2 = pd.get_dummies(df2, prefix="", prefix_sep="")
 columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 df2 = df2.loc[:, columns]
-#%%
 data = df2.to_numpy(dtype=float)
 # data_rolling = df.rolling(7).mean().dropna().to_numpy()
 
@@ -169,6 +168,7 @@ def run(train_val, epoch):
         plt.title("pred_train")
         plt.legend()
 
+#%%
 seq = 5
 val_len = 30
 batch_size = 200
@@ -187,7 +187,3 @@ run(train_val, epoch)
 # batch_size = 8192
 # epoch = 50000
 # run(train_dataset, val_dataset, batch_size, epoch, seq)
-
-a = data[0:, 0]
-b = (a - np.mean(a))/np.std(a)
-plt.plot(b)
