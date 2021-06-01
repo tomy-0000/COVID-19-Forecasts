@@ -166,11 +166,12 @@ def run(train_val_test, epoch, use_best=True):
         pred_list = pred_list[:, 0]
         pred_list = train_val_test.inverse_standard(pred_list)
         label_list = train_val_test.inverse_standard(label_list)
+        mae = sum(abs(pred_list - label_list))/len(pred_list)
         plt.figure(figsize=(12, 8))
         plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
         plt.plot(pred_list, label="predict")
         plt.plot(label_list, label="gt")
-        plt.title("pred_"+phase)
+        plt.title(f"pred_{phase} (mae:{mae:.3f})")
         plt.legend()
 
 #%%
