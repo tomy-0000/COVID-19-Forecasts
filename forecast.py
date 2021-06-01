@@ -58,36 +58,40 @@ class Dataset(torch.utils.data.Dataset):
     def get_feature(self, idx):
         return self.data[idx + self.seq, 1:].numpy()
 
-class TrainVal:
-    def __init__(self, data, seq, val_len, batch_size=32, normalization_idx=[0]):
+class TrainValTest:
+    def __init__(self, data, seq, val_test_len, batch_size=32, normalization_idx=[0]):
         data = data.copy()
         self.feature_num = data.shape[1]
         self.seq = seq
-        self.val_len = val_len + seq
-        train_data = data[:-val_len]
-        val_data = data[-val_len:]
+        self.val_test_len = val_test_len + seq
+        train_data = data[:-2*val_test_len]
+        val_data = data[-2*val_test_len:-val_test_len]
+        test_data = data[-val_test_len:]
 
         self.normalization_idx = normalization_idx
         self.mean = np.mean(train_data[:, normalization_idx], axis=0)
         self.std = np.std(train_data[:, normalization_idx], axis=0)
         train_data[:, normalization_idx] = (train_data[:, normalization_idx] - self.mean)/self.std
         val_data[:, normalization_idx] = (val_data[:, normalization_idx] - self.mean)/self.std
+        test_data[:, normalization_idx] = (test_data[:, normalization_idx] - self.mean)/self.std
 
         train_dataset = Dataset(train_data, seq)
         val_dataset = Dataset(val_data, seq)
-        self.dataset_dict = {"train": train_dataset, "val": val_dataset}
+        test_dataset = Dataset(test_data, seq)
+        self.dataset_dict = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
 
         train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
         val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
-        self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader}
+        test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
+        self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
 
     def inverse_standard(self, data):
         return data*self.std + self.mean
 
-def run(train_val, epoch):
-    dataloader_dict = train_val.dataloader_dict
+def run(train_val_test, epoch, use_best=True):
+    dataloader_dict = train_val_test.dataloader_dict
 
-    net = Net(train_val.feature_num)
+    net = Net(train_val_test.feature_num)
     net.to(DEVICE)
     optimizer = torch.optim.Adam(net.parameters())
     criterion = nn.MSELoss()
@@ -140,12 +144,13 @@ def run(train_val, epoch):
     plt.title("mae")
 
     print("best_epoch:", best_dict["epoch"])
-    # net.load_state_dict(best_dict["state_dict"])
+    if use_best:
+        net.load_state_dict(best_dict["state_dict"])
     net.to("cpu")
     net.eval()
-    dataset_dict = train_val.dataset_dict
+    dataset_dict = train_val_test.dataset_dict
 
-    for phase in ["train", "val"]:
+    for phase in ["train", "test"]:
         dataset = dataset_dict[phase]
         seq = dataset.seq
 
@@ -159,13 +164,13 @@ def run(train_val, epoch):
                 out = np.append(out, feature)
                 pred_list = np.vstack([pred_list, out])
         pred_list = pred_list[:, 0]
-        pred_list = train_val.inverse_standard(pred_list)
-        label_list = train_val.inverse_standard(label_list)
+        pred_list = train_val_test.inverse_standard(pred_list)
+        label_list = train_val_test.inverse_standard(label_list)
         plt.figure(figsize=(12, 8))
         plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
         plt.plot(pred_list, label="predict")
         plt.plot(label_list, label="gt")
-        plt.title("pred_train")
+        plt.title("pred_"+phase)
         plt.legend()
 
 #%%
