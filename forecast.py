@@ -90,7 +90,7 @@ class TrainValTest:
     def inverse_standard(self, data):
         return data*self.std + self.mean
 
-def run(train_val_test, epoch, use_best=True, plot=True, log=True):
+def run(train_val_test, epoch, use_best=True, plot=True, log=True, patience=-1):
     dataloader_dict = train_val_test.dataloader_dict
 
     net = Net(train_val_test.feature_num)
@@ -102,6 +102,7 @@ def run(train_val_test, epoch, use_best=True, plot=True, log=True):
     best_dict = {"mae_loss": 1e10, "state_dict": None, "epoch": 0}
 
     show_progress = epoch // 100
+    break_flag = False
     for i in tqdm(range(epoch), leave=log):
         for phase in ["train", "val"]:
             dataloader = dataloader_dict[phase]
@@ -131,10 +132,15 @@ def run(train_val_test, epoch, use_best=True, plot=True, log=True):
                 tqdm.write(f"{i}_{phase}_epoch_mae: {epoch_mae}")
             result_dict[phase+"_loss"].append(epoch_loss)
             result_dict[phase+"_mae"].append(epoch_mae)
-            if phase == "val" and epoch_mae < best_dict["mae_loss"]:
-                best_dict["mae_loss"] = epoch_mae
-                best_dict["state_dict"] = net.state_dict()
-                best_dict["epoch"] = i + 1
+            if phase == "val":
+                if epoch_mae < best_dict["mae_loss"]:
+                    best_dict["mae_loss"] = epoch_mae
+                    best_dict["state_dict"] = net.state_dict()
+                    best_dict["epoch"] = i + 1
+                if (i + 1) - best_dict["epoch"] == patience:
+                    break_flag = True
+        if break_flag:
+            break
     if plot:
         plt.figure(figsize=(12, 8))
         x = np.arange(len(result_dict["train_loss"]))
@@ -190,18 +196,18 @@ batch_size = 200
 
 mae_list = []
 columns = ["曜日なし", "曜日あり"]
-epoch = 3000
+epoch = 30000
 
 train_val_test = TrainValTest(data[200:, [0]], seq, val_test_len, batch_size)
 tmp = []
-for _ in tqdm(range(10)):
-    tmp.append(run(train_val_test, epoch, use_best=True, plot=False, log=False))
+for _ in tqdm(range(100)):
+    tmp.append(run(train_val_test, epoch, use_best=True, plot=False, log=False, patience=500))
 mae_list.append(tmp)
 
 train_val_test = TrainValTest(data[200:], seq, val_test_len, batch_size)
 tmp = []
-for _ in tqdm(range(10)):
-    tmp.append(run(train_val_test, epoch, use_best=True, plot=False, log=False))
+for _ in tqdm(range(100)):
+    tmp.append(run(train_val_test, epoch, use_best=True, plot=False, log=False, patience=500))
 mae_list.append(tmp)
 
 result_df = pd.DataFrame({i: j for i, j in zip(columns, mae_list)})
