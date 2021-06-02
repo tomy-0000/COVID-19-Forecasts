@@ -188,12 +188,24 @@ seq = 5
 val_test_len = 30
 batch_size = 200
 
-train_val_test = TrainValTest(data, seq, val_test_len, batch_size)
-epoch = 10000
 mae_list = []
-for _ in range(10):
-    mae_list.append(run(train_val_test, epoch))
-sns.boxplot(data=mae_list)
+columns = ["曜日なし", "曜日あり"]
+epoch = 3000
+
+train_val_test = TrainValTest(data[200:, [0]], seq, val_test_len, batch_size)
+tmp = []
+for _ in tqdm(range(10)):
+    tmp.append(run(train_val_test, epoch, use_best=True, plot=False, log=False))
+mae_list.append(tmp)
+
+train_val_test = TrainValTest(data[200:], seq, val_test_len, batch_size)
+tmp = []
+for _ in tqdm(range(10)):
+    tmp.append(run(train_val_test, epoch, use_best=True, plot=False, log=False))
+mae_list.append(tmp)
+
+result_df = pd.DataFrame({i: j for i, j in zip(columns, mae_list)})
+sns.boxplot(data=result_df)
 
 #%%
 # seq = 30
