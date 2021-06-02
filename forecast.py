@@ -90,7 +90,7 @@ class TrainValTest:
     def inverse_standard(self, data):
         return data*self.std + self.mean
 
-def run(train_val_test, epoch, use_best=True):
+def run(train_val_test, epoch, use_best=True, plot=True):
     dataloader_dict = train_val_test.dataloader_dict
 
     net = Net(train_val_test.feature_num)
@@ -135,18 +135,18 @@ def run(train_val_test, epoch, use_best=True):
                 best_dict["mae_loss"] = epoch_mae
                 best_dict["state_dict"] = net.state_dict()
                 best_dict["epoch"] = i + 1
-
-    plt.figure(figsize=(12, 8))
-    x = np.arange(len(result_dict["train_loss"]))
-    sns.lineplot(x=x, y=result_dict["train_loss"], linewidth=4, label="train_loss")
-    sns.lineplot(x=x, y=result_dict["val_loss"], linewidth=4, label="val_loss")
-    plt.title("rmse")
-    plt.legend(fontsize=16)
-    plt.figure(figsize=(12, 8))
-    sns.lineplot(x=x, y=result_dict["train_mae"], linewidth=4, label="train_mae")
-    sns.lineplot(x=x, y=result_dict["val_mae"], linewidth=4, label="val_mae")
-    plt.title("mae")
-    plt.legend(fontsize=16)
+    if plot:
+        plt.figure(figsize=(12, 8))
+        x = np.arange(len(result_dict["train_loss"]))
+        sns.lineplot(x=x, y=result_dict["train_loss"], linewidth=4, label="train_loss")
+        sns.lineplot(x=x, y=result_dict["val_loss"], linewidth=4, label="val_loss")
+        plt.title("rmse")
+        plt.legend(fontsize=16)
+        plt.figure(figsize=(12, 8))
+        sns.lineplot(x=x, y=result_dict["train_mae"], linewidth=4, label="train_mae")
+        sns.lineplot(x=x, y=result_dict["val_mae"], linewidth=4, label="val_mae")
+        plt.title("mae")
+        plt.legend(fontsize=16)
 
     print("best_epoch:", best_dict["epoch"])
     if use_best:
@@ -172,13 +172,16 @@ def run(train_val_test, epoch, use_best=True):
         pred_list = train_val_test.inverse_standard(pred_list)
         label_list = train_val_test.inverse_standard(label_list)
         mae = sum(abs(pred_list[seq:] - label_list[seq:]))/len(pred_list[seq:])
-        plt.figure(figsize=(12, 8))
-        x=np.arange(len(pred_list))
-        plt.plot(seq - 1, pred_list[seq - 1], ".", c="C0", markersize=20)
-        sns.lineplot(x=x, y=pred_list, label="predict", linewidth=4)
-        sns.lineplot(x=x, y=label_list, label="gt", linewidth=4)
-        plt.title(f"pred_{phase} (mae:{mae:.3f})")
-        plt.legend(fontsize=16)
+
+        if plot:
+            plt.figure(figsize=(12, 8))
+            x=np.arange(len(pred_list))
+            plt.plot(seq - 1, pred_list[seq - 1], ".", c="C0", markersize=20)
+            sns.lineplot(x=x, y=pred_list, label="predict", linewidth=4)
+            sns.lineplot(x=x, y=label_list, label="gt", linewidth=4)
+            plt.title(f"pred_{phase} (mae:{mae:.3f})")
+            plt.legend(fontsize=16)
+    return mae  # testのmae
 
 #%%
 seq = 5
@@ -187,7 +190,10 @@ batch_size = 200
 
 train_val_test = TrainValTest(data, seq, val_test_len, batch_size)
 epoch = 10000
-run(train_val_test, epoch)
+mae_list = []
+for _ in range(10):
+    mae_list.append(run(train_val_test, epoch))
+sns.boxplot(data=mae_list)
 
 #%%
 # seq = 30
