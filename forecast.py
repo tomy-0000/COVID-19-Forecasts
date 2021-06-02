@@ -90,7 +90,7 @@ class TrainValTest:
     def inverse_standard(self, data):
         return data*self.std + self.mean
 
-def run(train_val_test, epoch, use_best=True, plot=True):
+def run(train_val_test, epoch, use_best=True, plot=True, log=True):
     dataloader_dict = train_val_test.dataloader_dict
 
     net = Net(train_val_test.feature_num)
@@ -102,7 +102,7 @@ def run(train_val_test, epoch, use_best=True, plot=True):
     best_dict = {"mae_loss": 1e10, "state_dict": None, "epoch": 0}
 
     show_progress = epoch // 100
-    for i in tqdm(range(epoch)):
+    for i in tqdm(range(epoch), leave=log):
         for phase in ["train", "val"]:
             dataloader = dataloader_dict[phase]
             if phase == "train":
@@ -126,7 +126,7 @@ def run(train_val_test, epoch, use_best=True, plot=True):
             data_len = len(dataloader.dataset)
             epoch_loss /= data_len
             epoch_mae /= data_len
-            if i % show_progress == 0:
+            if i % show_progress == 0 and log:
                 tqdm.write(f"{i}_{phase}_epoch_loss: {epoch_loss}")
                 tqdm.write(f"{i}_{phase}_epoch_mae: {epoch_mae}")
             result_dict[phase+"_loss"].append(epoch_loss)
