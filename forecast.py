@@ -3,9 +3,11 @@ import numpy as np
 import pandas as pd
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+sns.set()
 
 url1 ="https://docs.google.com/spreadsheets/d/1Ot0T8_YZ2Q0dORnKEhcUmuYCqZ1y81PIsIAMB7WZE8g/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2020"
 url2 = "https://docs.google.com/spreadsheets/d/1V1eJM1mupE9gJ6_k0q_77nlFoRuwDuBliMLcMdDMC_E/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2021"
@@ -24,7 +26,7 @@ df2 = pd.get_dummies(df2, prefix="", prefix_sep="")
 columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 df2 = df2.loc[:, columns]
 data = df2.to_numpy(dtype=float)
-# data_rolling = df.rolling(7).mean().dropna().to_numpy()
+# data_rolling = df2.rolling(7).mean().dropna().to_numpy()
 
 #%%
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -63,7 +65,7 @@ class TrainValTest:
         data = data.copy()
         self.feature_num = data.shape[1]
         self.seq = seq
-        self.val_test_len = val_test_len + seq
+        val_test_len = val_test_len + seq
         train_data = data[:-2*val_test_len]
         val_data = data[-2*val_test_len:-val_test_len]
         test_data = data[-val_test_len:]
@@ -115,7 +117,7 @@ def run(train_val_test, epoch, use_best=True):
                     label = label.to(DEVICE)
                     optimizer.zero_grad()
                     outputs = net(inputs)
-                    loss = criterion(outputs, label)
+                    loss = torch.sqrt(criterion(outputs, label))
                     if phase == "train":
                         loss.backward()
                         optimizer.step()
@@ -135,13 +137,16 @@ def run(train_val_test, epoch, use_best=True):
                 best_dict["epoch"] = i + 1
 
     plt.figure(figsize=(12, 8))
-    plt.plot(result_dict["train_loss"])
-    plt.plot(result_dict["val_loss"])
-    plt.title("mse")
+    x = np.arange(len(result_dict["train_loss"]))
+    sns.lineplot(x=x, y=result_dict["train_loss"], linewidth=4, label="train_loss")
+    sns.lineplot(x=x, y=result_dict["val_loss"], linewidth=4, label="val_loss")
+    plt.title("rmse")
+    plt.legend(fontsize=16)
     plt.figure(figsize=(12, 8))
-    plt.plot(result_dict["train_mae"])
-    plt.plot(result_dict["val_mae"])
+    sns.lineplot(x=x, y=result_dict["train_mae"], linewidth=4, label="train_mae")
+    sns.lineplot(x=x, y=result_dict["val_mae"], linewidth=4, label="val_mae")
     plt.title("mae")
+    plt.legend(fontsize=16)
 
     print("best_epoch:", best_dict["epoch"])
     if use_best:
@@ -166,13 +171,14 @@ def run(train_val_test, epoch, use_best=True):
         pred_list = pred_list[:, 0]
         pred_list = train_val_test.inverse_standard(pred_list)
         label_list = train_val_test.inverse_standard(label_list)
-        mae = sum(abs(pred_list - label_list))/len(pred_list)
+        mae = sum(abs(pred_list[seq:] - label_list[seq:]))/len(pred_list[seq:])
         plt.figure(figsize=(12, 8))
-        plt.plot(seq, pred_list[seq], ".", c="C0", markersize=20)
-        plt.plot(pred_list, label="predict")
-        plt.plot(label_list, label="gt")
+        x=np.arange(len(pred_list))
+        plt.plot(seq - 1, pred_list[seq - 1], ".", c="C0", markersize=20)
+        sns.lineplot(x=x, y=pred_list, label="predict", linewidth=4)
+        sns.lineplot(x=x, y=label_list, label="gt", linewidth=4)
         plt.title(f"pred_{phase} (mae:{mae:.3f})")
-        plt.legend()
+        plt.legend(fontsize=16)
 
 #%%
 seq = 5
