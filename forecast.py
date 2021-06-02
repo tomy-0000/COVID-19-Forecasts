@@ -182,12 +182,12 @@ def run(train_val_test, epoch, use_best=True):
 
 #%%
 seq = 5
-val_len = 30
+val_test_len = 30
 batch_size = 200
 
-train_val = TrainVal(data, seq, val_len, batch_size)
+train_val_test = TrainValTest(data, seq, val_test_len, batch_size)
 epoch = 10000
-run(train_val, epoch)
+run(train_val_test, epoch)
 
 #%%
 # seq = 30
