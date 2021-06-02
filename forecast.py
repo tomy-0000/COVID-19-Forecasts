@@ -206,6 +206,7 @@ mae_list.append(tmp)
 
 result_df = pd.DataFrame({i: j for i, j in zip(columns, mae_list)})
 sns.boxplot(data=result_df)
+sns.swarmplot(data=result_df, color="black")
 
 #%%
 # seq = 30
