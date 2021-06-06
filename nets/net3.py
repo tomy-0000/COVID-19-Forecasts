@@ -1,4 +1,3 @@
-import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 import torch
 import torch.nn as nn
