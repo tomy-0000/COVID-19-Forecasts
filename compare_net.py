@@ -18,7 +18,7 @@ import nets
 # df2 = pd.DataFrame(0, columns=["count"], index=index)
 # for date, tmp_df in df.groupby("公表日"):
 #     df2.loc[date, "count"] += len(tmp_df)
-df = pd.read_csv("./count.csv", parse_dates=True, index_col=0)
+df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
 
 #%%
 mae_list = []
