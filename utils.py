@@ -27,7 +27,6 @@ class Dataset(torch.utils.data.Dataset):
 class TrainValTest:
     def __init__(self, data, seq, val_test_len, batch_size=32, normalization_idx=[0]):
         data = data.copy()
-        self.feature_num = data.shape[1]
         self.seq = seq
         val_test_len = val_test_len + seq
         train_data = data[:-2*val_test_len]
