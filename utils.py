@@ -56,7 +56,7 @@ class TrainValTest:
     def inverse_standard(self, data):
         return data*self.std + self.mean
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
 
 def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=True, patience=-1):
