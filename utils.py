@@ -5,7 +5,7 @@ from tqdm.notebook import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-sns.set()
+sns.set(font="IPAexGothic")
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, data, seq):
