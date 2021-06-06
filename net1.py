@@ -6,17 +6,6 @@ import torch.nn as nn
 from utils import TrainValTest, run
 sns.set(font="IPAexGothic")
 
-class Net(nn.Module):
-    def __init__(self, feature_num):
-        super().__init__()
-        self.lstm = nn.LSTM(feature_num, 32, num_layers=1, batch_first=True)
-        self.linear = nn.Linear(32, 1)
-
-    def forward(self, x):
-        x, _ = self.lstm(x)
-        y = self.linear(x[:, -1, :])
-        return y
-
 url1 ="https://docs.google.com/spreadsheets/d/1Ot0T8_YZ2Q0dORnKEhcUmuYCqZ1y81PIsIAMB7WZE8g/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2020"
 url2 = "https://docs.google.com/spreadsheets/d/1V1eJM1mupE9gJ6_k0q_77nlFoRuwDuBliMLcMdDMC_E/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2021"
 
@@ -36,23 +25,45 @@ df2 = df2.loc[:, columns]
 data = df2.to_numpy(dtype=float)
 
 #%%
-seq = 5
-val_test_len = 30
-batch_size = 200
+class Net(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers):
+        super().__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.linear = nn.Linear(hidden_size, 1)
+
+    def forward(self, x):
+        x, _ = self.lstm(x)
+        y = self.linear(x[:, -1, :])
+        return y
 
 mae_list = []
 epoch = 30000
+repeat_num = 2
 
+seq = 14
+val_test_len = 30
+batch_size = 200
+
+# 曜日無し
 train_val_test = TrainValTest(data[200:, [0]], seq, val_test_len, batch_size)
 tmp = []
-for _ in tqdm(range(3)):
-    tmp.append(run(Net, train_val_test, epoch, use_best=True, plot=False, log=False, patience=500))
+net_args = {"input_size": 1,
+            "hidden_size": 32,
+            "num_layers": 1}
+run(Net, net_args, train_val_test, epoch, use_best=True, plot=True, log=False, patience=500)
+for _ in tqdm(range(repeat_num)):
+    tmp.append(run(Net, net_args, train_val_test, epoch, use_best=True, plot=False, log=False, patience=500))
 mae_list.append(tmp)
 
+# 曜日有り
 train_val_test = TrainValTest(data[200:], seq, val_test_len, batch_size)
 tmp = []
-for _ in tqdm(range(3)):
-    tmp.append(run(Net, train_val_test, epoch, use_best=True, plot=False, log=False, patience=500))
+net_args = {"input_size": 8,
+            "hidden_size": 32,
+            "num_layers": 1}
+run(Net, net_args, train_val_test, epoch, use_best=True, plot=True, log=False, patience=500)
+for _ in tqdm(range(repeat_num)):
+    tmp.append(run(Net, net_args, train_val_test, epoch, use_best=True, plot=False, log=False, patience=500))
 mae_list.append(tmp)
 
 columns = ["曜日なし", "曜日あり"]
