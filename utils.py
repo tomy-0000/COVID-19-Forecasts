@@ -65,9 +65,6 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
 
     net = Net(**net_config)
     net.to(DEVICE)
-    if "cuda" in DEVICE.type:
-        net = torch.nn.DataParallel(net)
-        torch.backends.cudnn.benchmark = True
     optimizer = torch.optim.Adam(net.parameters())
     criterion = nn.MSELoss()
     result_dict = {"train_loss": [], "train_mae": [],
@@ -135,9 +132,7 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
     tqdm.write("best_epoch: "+str(best_dict["epoch"]))
     if use_best:
         net.load_state_dict(best_dict["state_dict"])
-    if "cuda" in DEVICE.type:
-        net = net.module
-        net.to("cpu")
+    net.to("cpu")
     net.eval()
     dataset_dict = train_val_test.dataset_dict
 
