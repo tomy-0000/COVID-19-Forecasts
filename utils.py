@@ -56,10 +56,10 @@ class TrainValTest:
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
 
-def run(Net, net_args, train_val_test, epoch, use_best=True, plot=True, log=True, patience=-1):
+def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=True, patience=-1):
     dataloader_dict = train_val_test.dataloader_dict
 
-    net = Net(**net_args)
+    net = Net(**net_config)
     net.to(DEVICE)
     optimizer = torch.optim.Adam(net.parameters())
     criterion = nn.MSELoss()
