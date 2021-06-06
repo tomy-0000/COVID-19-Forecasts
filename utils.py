@@ -61,6 +61,7 @@ print(DEVICE)
 
 def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=True, patience=-1):
     dataloader_dict = train_val_test.dataloader_dict
+    net_name = Net.__name__
 
     net = Net(**net_config)
     net.to(DEVICE)
@@ -72,7 +73,8 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
 
     show_progress = epoch // 100
     break_flag = False
-    for i in tqdm(range(epoch), leave=log):
+    pbar = tqdm(range(epoch), leave=log)
+    for i in pbar:
         for phase in ["train", "val"]:
             dataloader = dataloader_dict[phase]
             if phase == "train":
@@ -99,6 +101,8 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
             if i % show_progress == 0 and log:
                 tqdm.write(f"{i}_{phase}_epoch_loss: {epoch_loss}")
                 tqdm.write(f"{i}_{phase}_epoch_mae: {epoch_mae}")
+                if phase == "val":
+                    tqdm.write("-"*20)
             result_dict[phase+"_loss"].append(epoch_loss)
             result_dict[phase+"_mae"].append(epoch_mae)
             if phase == "val":
@@ -117,13 +121,15 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
         sns.lineplot(x=x, y=result_dict["val_loss"], linewidth=4, label="val_loss")
         plt.title("rmse")
         plt.legend(fontsize=16)
+        plt.savefig(f"./result_img/{net_name}_rmse.png")
         plt.figure(figsize=(12, 8))
         sns.lineplot(x=x, y=result_dict["train_mae"], linewidth=4, label="train_mae")
         sns.lineplot(x=x, y=result_dict["val_mae"], linewidth=4, label="val_mae")
         plt.title("mae")
         plt.legend(fontsize=16)
+        plt.savefig(f"./result_img/{net_name}_mae.png")
 
-    print("best_epoch:", best_dict["epoch"])
+    tqdm.write("best_epoch: "+str(best_dict["epoch"]))
     if use_best:
         net.load_state_dict(best_dict["state_dict"])
     net.to("cpu")
@@ -156,6 +162,7 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
             sns.lineplot(x=x, y=label_list, label="gt", linewidth=4)
             plt.title(f"pred_{phase} (mae:{mae:.3f})")
             plt.legend(fontsize=16)
+            plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
     return mae  # testのmae
 
 def run_repeatedly(Net, net_config, train_val_test, epoch, patience, repeat_num):
