@@ -135,7 +135,9 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
     tqdm.write("best_epoch: "+str(best_dict["epoch"]))
     if use_best:
         net.load_state_dict(best_dict["state_dict"])
-    net.to("cpu")
+    if "cuda" in DEVICE.type:
+        net = net.module
+        net.to("cpu")
     net.eval()
     dataset_dict = train_val_test.dataset_dict
 
