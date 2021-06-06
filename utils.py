@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-if "get_ipython" not in globals():
+if "get_ipython" in globals():
     from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
