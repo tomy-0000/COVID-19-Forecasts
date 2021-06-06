@@ -7,9 +7,9 @@ def get_data(df):
     return data
 
 class Net1(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers):
+    def __init__(self, hidden_size, num_layers):
         super().__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(1, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
