@@ -1,5 +1,6 @@
 #%%
 from tqdm.notebook import tqdm
+import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import torch.nn as nn
@@ -68,5 +69,7 @@ mae_list.append(tmp)
 
 columns = ["曜日なし", "曜日あり"]
 result_df = pd.DataFrame({i: j for i, j in zip(columns, mae_list)})
+
+plt.figure()
 sns.boxplot(data=result_df)
 sns.swarmplot(data=result_df, color="white", size=7, edgecolor="black", linewidth=2)
