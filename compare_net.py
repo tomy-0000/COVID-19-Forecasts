@@ -18,10 +18,13 @@ for date, tmp_df in df.groupby("公表日"):
     df2.loc[date, "count"] += len(tmp_df)
 
 #%%
+mae_list = []
+
 data1 = nets.net1.get_data(df2)
 train_val_test = utils.TrainValTest(data1, **config.dataset_config)
 Net1 = nets.net1.Net1
 utils.run(Net1, config.net1_config, train_val_test, config.epoch,
           patience=500)
-utils.run_repeatedly(Net1, config.net1_config, train_val_test, config.epoch,
+result = utils.run_repeatedly(Net1, config.net1_config, train_val_test, config.epoch,
                      patience=config.patience)
+mae_list.append(result)
