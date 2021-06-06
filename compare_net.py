@@ -1,4 +1,5 @@
 #%%
+import pickle
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -71,6 +72,8 @@ result = utils.run_repeatedly(Net, net_config, train_val_test, config.epoch,
 mae_list.append(result)
 
 result_df = pd.DataFrame({i: j for i, j in zip(net_name_list, mae_list)})
+with open('result_df.pkl', 'wb') as f:
+    pickle.dump(result_df, f)
 plt.figure()
 sns.boxplot(data=result_df)
 sns.swarmplot(data=result_df, color="white", size=7, edgecolor="black", linewidth=2)

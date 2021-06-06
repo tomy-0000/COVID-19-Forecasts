@@ -3,3 +3,4 @@
 objects/
 __pycache__
 *.png
+*.pkl
