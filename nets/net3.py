@@ -11,7 +11,7 @@ def get_data(df):
     data = df.to_numpy(dtype=float)
     return data
 
-class Net(nn.Module):
+class Net3(nn.Module):
     def __init__(self, weather_embedding_dim, hidden_size, num_layers):
         super().__init__()
         self.weather_embedding = nn.Embedding(7, weather_embedding_dim)
