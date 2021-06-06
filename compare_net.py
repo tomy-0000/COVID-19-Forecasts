@@ -33,7 +33,7 @@ Net = nets.net1.Net1
 net_config = config.net1_config
 train_val_test = utils.TrainValTest(data, **config.dataset_config)
 net_name = Net.__name__
-tqdm.write(net_name)
+tqdm.write(f"【{net_name}】")
 net_name_list.append(net_name)
 utils.run(Net, net_config, train_val_test, config.epoch,
           patience=config.patience)
@@ -47,7 +47,7 @@ Net = nets.net2.Net2
 net_config = config.net2_config
 train_val_test = utils.TrainValTest(data, **config.dataset_config)
 net_name = Net.__name__
-tqdm.write(net_name)
+tqdm.write(f"【{net_name}】")
 net_name_list.append(net_name)
 utils.run(Net, net_config, train_val_test, config.epoch,
           patience=config.patience)
@@ -61,7 +61,7 @@ Net = nets.net3.Net3
 net_config = config.net3_config
 train_val_test = utils.TrainValTest(data, **config.dataset_config)
 net_name = Net.__name__
-tqdm.write(net_name)
+tqdm.write(f"【{net_name}】")
 net_name_list.append(net_name)
 utils.run(Net, net_config, train_val_test, config.epoch,
           patience=config.patience)
