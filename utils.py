@@ -154,3 +154,10 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
             plt.title(f"pred_{phase} (mae:{mae:.3f})")
             plt.legend(fontsize=16)
     return mae  # testのmae
+
+def run_repeatedly(Net, net_config, train_val_test, epoch, patience, repeat_num):
+    mae_list = []
+    for _ in tqdm(range(repeat_num)):
+        mae_list.append(run(Net, net_config, train_val_test, epoch, use_best=True,
+        plot=False, log=False, patience=patience))
+    return mae_list
