@@ -22,10 +22,32 @@ df = pd.read_csv("./count.csv", parse_dates=True, index_col=0)
 
 #%%
 mae_list = []
+
+data = nets.net1.get_data(df)
+Net = nets.net1.Net1
+net_config = config.net1_config
+train_val_test = utils.TrainValTest(data, **config.dataset_config)
+utils.run(Net, net_config, train_val_test, config.epoch,
+          patience=config.patience)
+result = utils.run_repeatedly(Net, net_config, train_val_test, config.epoch,
+                              patience=config.patience,
+                              repeat_num=config.repeat_num)
+mae_list.append(result)
+
+data = nets.net2.get_data(df)
+Net = nets.net2.Net2
+net_config = config.net2_config
+train_val_test = utils.TrainValTest(data, **config.dataset_config)
+utils.run(Net, net_config, train_val_test, config.epoch,
+          patience=config.patience)
+result = utils.run_repeatedly(Net, net_config, train_val_test, config.epoch,
+                              patience=config.patience,
+                              repeat_num=config.repeat_num)
+mae_list.append(result)
+
 data = nets.net3.get_data(df)
 Net = nets.net3.Net3
 net_config = config.net3_config
-
 train_val_test = utils.TrainValTest(data, **config.dataset_config)
 utils.run(Net, net_config, train_val_test, config.epoch,
           patience=config.patience)
