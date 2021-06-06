@@ -3,7 +3,7 @@ dataset_config = {"seq": 14,
                   "batch_size": 10000}
 epoch = 30000
 patience = 500
-repeat_num = 2
+repeat_num = 100
 
 net1_config = {"hidden_size": 32,
                "num_layers": 1}
