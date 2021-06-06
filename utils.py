@@ -65,6 +65,9 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
 
     net = Net(**net_config)
     net.to(DEVICE)
+    if "cuda" in DEVICE.type:
+        net = torch.nn.DataParallel(net)
+        torch.backends.cudnn.benchmark = True
     optimizer = torch.optim.Adam(net.parameters())
     criterion = nn.MSELoss()
     result_dict = {"train_loss": [], "train_mae": [],
@@ -73,8 +76,7 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
 
     show_progress = epoch // 100
     break_flag = False
-    pbar = tqdm(range(epoch), leave=log)
-    for i in pbar:
+    for i in tqdm(range(epoch), leave=log):
         for phase in ["train", "val"]:
             dataloader = dataloader_dict[phase]
             if phase == "train":
@@ -114,6 +116,7 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
                     break_flag = True
         if break_flag:
             break
+
     if plot:
         plt.figure(figsize=(12, 8))
         x = np.arange(len(result_dict["train_loss"]))
