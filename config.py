@@ -1,9 +1,10 @@
 dataset_config = {"seq": 14,
                   "val_test_len": 30,
-                  "batch_size": 10000}
+                  "batch_size": 10000,
+                  "normalization_idx": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
 epoch = 30000
 patience = 500
-repeat_num = 100
+repeat_num = 5
 
 net1_config = {"hidden_size": 32,
                "num_layers": 1}
