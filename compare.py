@@ -17,7 +17,7 @@ for result_path in result_path_list:
         result_arr_list.append(pickle.load(f))
 
 fig, ax = plt.subplots()
-sns.boxplot(data=result_arr_list)
-sns.swarmplot(data=result_arr_list, size=4, color="white", edgecolor="black", linewidth=1)
+sns.boxplot(data=result_arr_list, whis=[0, 100])
+sns.stripplot(data=result_arr_list, size=4, color="white", edgecolor="black", linewidth=1)
 ax.set_xticklabels(result_name_list)
 plt.savefig(f"./result_img/boxplot_{'_'.join(result_name_list)}.png")
