@@ -1,7 +1,8 @@
+import pandas as pd
 import torch.nn as nn
 
-def get_data(df):
-    df = df.copy()
+def get_data():
+    df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
     data = df.to_numpy(dtype=float)
     return data
 
