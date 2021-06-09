@@ -1,5 +1,5 @@
 class Config:
     epoch = 30000
-    lr = 0.001
-    patience = 5
-    repeat_num = 1
+    lr = 0.0001
+    patience = 500
+    repeat_num = 100
