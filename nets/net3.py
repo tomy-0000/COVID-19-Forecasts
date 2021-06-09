@@ -26,10 +26,10 @@ class Net(nn.Module):
         df["day_name"] = df.index.day_name()
         le = LabelEncoder()
         df["day_name"] = le.fit_transform(df.index.day_name())
-        data = df.to_numpy(dtype=float)
+        data = df.to_numpy(dtype=float)[150:]
         return data
 
-    dataset_config = {"seq": 14,
+    dataset_config = {"seq": 30,
                       "val_test_len": 30,
                       "batch_size": 10000,
                       "normalization_idx": [0]}

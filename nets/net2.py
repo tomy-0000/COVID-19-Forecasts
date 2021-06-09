@@ -19,10 +19,10 @@ class Net(nn.Module):
         df = pd.get_dummies(df, prefix="", prefix_sep="")
         columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         df = df.loc[:, columns]
-        data = df.to_numpy(dtype=float)
+        data = df.to_numpy(dtype=float)[150:]
         return data
 
-    dataset_config = {"seq": 14,
+    dataset_config = {"seq": 30,
                       "val_test_len": 30,
                       "batch_size": 10000,
                       "normalization_idx": [0]}

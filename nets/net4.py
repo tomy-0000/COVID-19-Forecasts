@@ -18,10 +18,10 @@ class Net(nn.Module):
         df1 = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
         df2 = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/weather.csv", parse_dates=True, index_col=0)
         df = pd.concat([df1, df2], axis=1)
-        data = df.to_numpy(dtype=float)
+        data = df.to_numpy(dtype=float)[150:]
         return data
 
-    dataset_config = {"seq": 14,
+    dataset_config = {"seq": 30,
                       "val_test_len": 30,
                       "batch_size": 10000,
                       "normalization_idx": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
