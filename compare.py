@@ -1,22 +1,23 @@
 #%%
-import os
 import pickle
-import glob
-import pandas as pd
+import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#%%
-result_list = []
-net_name_list = []
-result_file_list = glob.glob("./result_pkl/*.pkl")
-for result_file in result_file_list:
-    with open(result_file, "rb") as f:
-        result_list.append(pickle.load(f))
-    net_name_list.append(os.path.basename(result_file)[:-4])
+parser = argparse.ArgumentParser()
+parser.add_argument("result_list", nargs="*")
+result_name_list = parser.parse_args().result_list
+if not result_name_list:
+    raise ValueError("Arguments must be passed")
 
-result_df = pd.DataFrame({i: j for i, j in zip(net_name_list, result_list)})
-plt.figure()
-sns.boxplot(data=result_df)
-sns.swarmplot(data=result_df, size=4, color="white", edgecolor="black", linewidth=1)
-plt.savefig("./result_img/boxplot.png")
+result_path_list = [f"./result_pkl/{s}.pkl" for s in result_name_list]
+result_arr_list = []
+for result_path in result_path_list:
+    with open(result_path, "rb") as f:
+        result_arr_list.append(pickle.load(f))
+
+fig, ax = plt.subplots()
+sns.boxplot(data=result_arr_list)
+sns.swarmplot(data=result_arr_list, size=4, color="white", edgecolor="black", linewidth=1)
+ax.set_xticklabels(result_name_list)
+plt.savefig(f"./result_img/boxplot_{'_'.join(result_name_list)}.png")
