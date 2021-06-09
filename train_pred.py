@@ -13,6 +13,8 @@ import nets
 parser = argparse.ArgumentParser()
 parser.add_argument("net_list", nargs="*")
 net_name_list = parser.parse_args().net_list
+if not net_name_list:
+    raise ValueError("Arguments must be passed")
 
 net_dict = nets.get_nets(net_name_list)
 
