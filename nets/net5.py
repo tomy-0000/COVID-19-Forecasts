@@ -27,7 +27,7 @@ class Net(nn.Module):
     dataset_config = {"seq": 30,
                       "val_test_len": 30,
                       "batch_size": 10000,
-                      "normalization_idx": [0]}
+                      "normalization_idx": [0, 8, 9, 10, 11, 12, 13, 14, 15, 16]}
 
     net_config = {"hidden_size": 32,
                   "num_layers": 1}
