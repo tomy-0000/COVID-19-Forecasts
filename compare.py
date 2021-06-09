@@ -18,5 +18,5 @@ for result_file in result_file_list:
 result_df = pd.DataFrame({i: j for i, j in zip(net_name_list, result_list)})
 plt.figure()
 sns.boxplot(data=result_df)
-sns.swarmplot(data=result_df, color="white", size=7, edgecolor="black", linewidth=2)
+sns.swarmplot(data=result_df, size=4, color="white", edgecolor="black", linewidth=1)
 plt.savefig("./result_img/boxplot.png")
