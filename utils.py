@@ -54,7 +54,7 @@ class TrainValTest:
         self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
 
     def inverse_standard(self, data):
-        return data*self.std + self.mean
+        return data*self.std[0] + self.mean[0]
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
