@@ -17,6 +17,7 @@ df2 = pd.DataFrame(0, columns=["count"], index=index)
 df2.index.name = "date"
 for date, tmp_df in df.groupby("公表日"):
     df2.loc[date, "count"] += len(tmp_df)
+df2 = df2[df2.index <= datetime.datetime(2020, 5, 31)]
 df2.to_csv("./data/count.csv")
 
 #%%
