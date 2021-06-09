@@ -170,4 +170,9 @@ def run_repeatedly(Net, net_name, net_config, train_val_test, epoch=30000, lr=0.
         mae_list.append(run(Net, net_name, net_config, train_val_test, epoch, lr=lr,
                             use_best=True, plot=False, log=False,
                             patience=patience))
+    fig, ax = plt.subplots()
+    sns.boxplot(data=[mae_list], whis=[0, 100])
+    sns.stripplot(data=[mae_list], size=4, color="white", edgecolor="black", linewidth=1)
+    ax.set_xticklabels([net_name])
+    plt.savefig(f"./result_img/boxplot_{net_name}.png")
     return mae_list
