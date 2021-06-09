@@ -59,9 +59,8 @@ class TrainValTest:
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
 
-def run(Net, net_config, train_val_test, epoch, lr=0.001, use_best=True, plot=True, log=True, patience=-1):
+def run(Net, net_name, net_config, train_val_test, epoch, lr=0.001, use_best=True, plot=True, log=True, patience=-1):
     dataloader_dict = train_val_test.dataloader_dict
-    net_name = Net.__name__
 
     net = Net(**net_config)
     net.to(DEVICE)
@@ -165,10 +164,10 @@ def run(Net, net_config, train_val_test, epoch, lr=0.001, use_best=True, plot=Tr
             plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
     return mae  # testのmae
 
-def run_repeatedly(Net, net_config, train_val_test, epoch=30000, lr=0.001, patience=-1, repeat_num=100):
+def run_repeatedly(Net, net_name, net_config, train_val_test, epoch=30000, lr=0.001, patience=-1, repeat_num=100):
     mae_list = []
     for _ in tqdm(range(repeat_num)):
-        mae_list.append(run(Net, net_config, train_val_test, epoch, lr=lr,
+        mae_list.append(run(Net, net_name, net_config, train_val_test, epoch, lr=lr,
                             use_best=True, plot=False, log=False,
                             patience=patience))
     return mae_list
