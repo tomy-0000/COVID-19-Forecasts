@@ -20,5 +20,5 @@ utils.run(Net, net_config, train_val_test, config.epoch,
 result = utils.run_repeatedly(Net, net_config, train_val_test, config.epoch,
                               patience=config.patience,
                               repeat_num=config.repeat_num)
-with open(f'./result/{net_name}.pkl', 'wb') as f:
+with open(f'./result_pkl/{net_name}.pkl', 'wb') as f:
     pickle.dump(result, f)

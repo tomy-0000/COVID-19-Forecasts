@@ -9,7 +9,7 @@ import seaborn as sns
 #%%
 result_list = []
 net_name_list = []
-result_file_list = glob.glob("./result/*.pkl")
+result_file_list = glob.glob("./result_pkl/*.pkl")
 for result_file in result_file_list:
     with open(result_file, "rb") as f:
         result_list.append(pickle.load(f))
