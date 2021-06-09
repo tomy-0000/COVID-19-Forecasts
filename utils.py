@@ -166,7 +166,7 @@ def run(Net, net_name, net_config, train_val_test, epoch, lr=0.001, use_best=Tru
 
 def run_repeatedly(Net, net_name, net_config, train_val_test, epoch=30000, lr=0.001, patience=-1, repeat_num=100):
     mae_list = []
-    for _ in tqdm(range(repeat_num)):
+    for _ in tqdm(range(repeat_num), desc=net_name):
         mae_list.append(run(Net, net_name, net_config, train_val_test, epoch, lr=lr,
                             use_best=True, plot=False, log=False,
                             patience=patience))
