@@ -14,3 +14,6 @@ net2_config = {"hidden_size": 32,
 net3_config = {"weather_embedding_dim": 8,
                "hidden_size": 32,
                "num_layers": 1}
+
+net4_config = {"hidden_size": 32,
+               "num_layers": 1}
