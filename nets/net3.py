@@ -3,15 +3,8 @@ from sklearn.preprocessing import LabelEncoder
 import torch
 import torch.nn as nn
 
-def get_data():
-    df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
-    df["day_name"] = df.index.day_name()
-    le = LabelEncoder()
-    df["day_name"] = le.fit_transform(df.index.day_name())
-    data = df.to_numpy(dtype=float)
-    return data
 
-class Net3(nn.Module):
+class Net(nn.Module):
     def __init__(self, weather_embedding_dim, hidden_size, num_layers):
         super().__init__()
         self.weather_embedding = nn.Embedding(7, weather_embedding_dim)
@@ -26,3 +19,21 @@ class Net3(nn.Module):
         x, _ = self.lstm(x)
         y = self.linear(x[:, -1, :])
         return y
+
+    @staticmethod
+    def get_data():
+        df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
+        df["day_name"] = df.index.day_name()
+        le = LabelEncoder()
+        df["day_name"] = le.fit_transform(df.index.day_name())
+        data = df.to_numpy(dtype=float)
+        return data
+
+    dataset_config = {"seq": 14,
+                      "val_test_len": 30,
+                      "batch_size": 10000,
+                      "normalization_idx": [0]}
+
+    net_config = {"weather_embedding_dim": 8,
+                  "hidden_size": 32,
+                  "num_layers": 1}

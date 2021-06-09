@@ -1,12 +1,7 @@
 import pandas as pd
 import torch.nn as nn
 
-def get_data():
-    df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
-    data = df.to_numpy(dtype=float)
-    return data
-
-class Net1(nn.Module):
+class Net(nn.Module):
     def __init__(self, hidden_size, num_layers):
         super().__init__()
         self.lstm = nn.LSTM(1, hidden_size, num_layers, batch_first=True)
@@ -16,3 +11,17 @@ class Net1(nn.Module):
         x, _ = self.lstm(x)
         y = self.linear(x[:, -1, :])
         return y
+
+    @staticmethod
+    def get_data():
+        df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
+        data = df.to_numpy(dtype=float)
+        return data
+
+    dataset_config = {"seq": 14,
+                      "val_test_len": 30,
+                      "batch_size": 10000,
+                      "normalization_idx": [0]}
+
+    net_config = {"hidden_size": 32,
+                  "num_layers": 1}

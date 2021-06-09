@@ -1,20 +1,5 @@
-dataset_config = {"seq": 14,
-                  "val_test_len": 30,
-                  "batch_size": 10000,
-                  "normalization_idx": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
-epoch = 30000
-patience = 500
-repeat_num = 5
-
-net1_config = {"hidden_size": 32,
-               "num_layers": 1}
-
-net2_config = {"hidden_size": 32,
-               "num_layers": 1}
-
-net3_config = {"weather_embedding_dim": 8,
-               "hidden_size": 32,
-               "num_layers": 1}
-
-net4_config = {"hidden_size": 32,
-               "num_layers": 1}
+class Config:
+    epoch = 30000
+    lr = 0.001
+    patience = 5
+    repeat_num = 1

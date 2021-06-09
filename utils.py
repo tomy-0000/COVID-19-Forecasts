@@ -59,13 +59,13 @@ class TrainValTest:
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
 
-def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=True, patience=-1):
+def run(Net, net_config, train_val_test, epoch, lr=0.001, use_best=True, plot=True, log=True, patience=-1):
     dataloader_dict = train_val_test.dataloader_dict
     net_name = Net.__name__
 
     net = Net(**net_config)
     net.to(DEVICE)
-    optimizer = torch.optim.Adam(net.parameters())
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     criterion = nn.MSELoss()
     result_dict = {"train_loss": [], "train_mae": [],
                    "val_loss": [], "val_mae": []}
@@ -165,9 +165,10 @@ def run(Net, net_config, train_val_test, epoch, use_best=True, plot=True, log=Tr
             plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
     return mae  # testのmae
 
-def run_repeatedly(Net, net_config, train_val_test, epoch, patience, repeat_num):
+def run_repeatedly(Net, net_config, train_val_test, epoch=30000, lr=0.001, patience=-1, repeat_num=100):
     mae_list = []
     for _ in tqdm(range(repeat_num)):
-        mae_list.append(run(Net, net_config, train_val_test, epoch, use_best=True,
-        plot=False, log=False, patience=patience))
+        mae_list.append(run(Net, net_config, train_val_test, epoch, lr=lr,
+                            use_best=True, plot=False, log=False,
+                            patience=patience))
     return mae_list
