@@ -4,7 +4,6 @@ import argparse
 import glob
 import os
 
-from torch._C import Value
 if "get_ipython" in globals():
     from tqdm.notebook import tqdm
 else:
