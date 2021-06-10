@@ -1,6 +1,10 @@
 #%%
 import pickle
 import argparse
+import glob
+import os
+
+from torch._C import Value
 if "get_ipython" in globals():
     from tqdm.notebook import tqdm
 else:
@@ -14,6 +18,11 @@ parser.add_argument("net_list", nargs="*")
 net_name_list = parser.parse_args().net_list
 if not net_name_list:
     raise ValueError("Arguments must be passed")
+
+exist_net = set([os.path.basename(i)[:-3] for i in glob.glob("./nets/*.py")])
+for net_name in net_name_list:
+    if net_name not in exist_net:
+        raise ValueError(f"{net_name} does not exist")
 
 net_dict = nets.get_nets(net_name_list)
 
