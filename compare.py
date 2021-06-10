@@ -3,6 +3,7 @@ import pickle
 import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
+sns.set()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("result_list", nargs="*")
