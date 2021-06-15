@@ -25,3 +25,6 @@ class Net(nn.Module):
 
     net_config = {"hidden_size": 32,
                   "num_layers": 1}
+
+# 特徴量
+#   カウント

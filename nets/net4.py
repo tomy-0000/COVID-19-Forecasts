@@ -28,3 +28,14 @@ class Net(nn.Module):
 
     net_config = {"hidden_size": 32,
                 "num_layers": 1}
+
+# 特徴量
+#   カウント
+#   気温
+#   降水量
+#   風速
+#   現地気圧
+#   相対温度
+#   蒸気圧
+#   天気
+#   雲量

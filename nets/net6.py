@@ -23,7 +23,11 @@ class Net(nn.Module):
     dataset_config = {"seq": 30,
                       "val_test_len": 30,
                       "batch_size": 10000,
-                      "normalization_idx": [0]}
+                      "normalization_idx": [0, 1]}
 
     net_config = {"hidden_size": 32,
                   "num_layers": 1}
+
+# 特徴量
+#   カウント
+#   緊急事態宣言
