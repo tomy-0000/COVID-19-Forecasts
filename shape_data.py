@@ -40,3 +40,23 @@ df["天気"] = df["天気"].map({j: i for i, j in enumerate(sorted(df["天気"].
 df = df.resample("D").mean()
 df = df[df.index >= datetime.datetime(2020, 1, 24)]
 df.to_csv("./data/weather.csv")
+
+#%%
+index = pd.date_range(start=datetime.datetime(2020, 1, 24), end=datetime.datetime(2021, 5, 31))
+df = pd.DataFrame(0, columns=["緊急事態宣言"], index=index)
+start1 = datetime.datetime(2020, 4, 7)
+end1 = datetime.datetime(2020, 5, 25)
+df.loc[start1:end1, "緊急事態宣言"] = list(range(1, (end1 - start1).days + 2))
+
+start1 = datetime.datetime(2020, 4, 7)
+end1 = datetime.datetime(2020, 5, 25)
+df.loc[start1:end1, "緊急事態宣言"] = list(range(1, (end1 - start1).days + 2))
+
+start2 = datetime.datetime(2021, 1, 8)
+end2 = datetime.datetime(2021, 3, 21)
+df.loc[start2:end2, "緊急事態宣言"] = list(range(1, (end2 - start2).days + 2))
+
+start3 = datetime.datetime(2021, 4, 25)
+end3 = datetime.datetime(2021, 5, 31)
+df.loc[start3:end3, "緊急事態宣言"] = list(range(1, (end3 - start3).days + 2))
+df.to_csv("./data/emergency.csv")
