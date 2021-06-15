@@ -17,6 +17,7 @@ class Net(nn.Module):
         df1 = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
         df2 = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/emergency.csv", parse_dates=True, index_col=0)
         df = pd.concat([df1, df2], axis=1)
+        df = df.rolling(window=7).mean()
         data = df.to_numpy(dtype=float)[150:]
         return data
 
@@ -28,6 +29,6 @@ class Net(nn.Module):
     net_config = {"hidden_size": 32,
                   "num_layers": 1}
 
-# 特徴量
+# 特徴量 移動平均
 #   カウント
 #   緊急事態宣言(経過日数)
