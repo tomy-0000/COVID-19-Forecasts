@@ -5,7 +5,7 @@ import torch.nn as nn
 class Net(nn.Module):
     def __init__(self, hidden_size, num_layers):
         super().__init__()
-        self.lstm = nn.LSTM(9, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(10, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
