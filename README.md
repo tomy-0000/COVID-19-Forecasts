@@ -19,6 +19,13 @@ python compare.py net1 net2
 | net2 | カウント <br> 曜日(one hot encoding) | hidden_size: 32 <br> num_layers: 1 |
 | net3 | カウント <br> 曜日(Embedding) | weather_embedding_dim: 8 <br> hidden_size: 32 <br> num_layers: 1 |
 | net4 | カウント <br> 気温 <br> 降水量 <br> 風速 <br> 現地気圧 <br> 相対温度 <br> 蒸気圧 <br> 天気 <br> 雲量 | hidden_size: 32 <br> num_layers: 1 |
+| net5 | カウント <br> 曜日(Embedding) <br> 気温 <br> 降水量 <br> 風速 <br> 現地気圧 <br> 相対温度 <br> 蒸気圧 <br> 天気 <br> 雲量 | hidden_size: 32 <br> num_layers: 1 |
+| net6 |  <br> カウント <br> 緊急事態宣言(経過日数) | hidden_size: 32 <br> num_layers: 1 |
+| net7 | 【移動平均】 <br> カウント | hidden_size: 32 <br> num_layers: 1 |
+| net8 | 【移動平均】 <br> カウント <br> 気温 <br> 降水量 <br> 風速 <br> 現地気圧 <br> 相対温度 <br> 蒸気圧 <br> 天気 <br> 雲量 | hidden_size: 32 <br> num_layers: 1 |
+| net9 | 【移動平均】 <br> カウント <br> 緊急事態宣言(経過日数) | hidden_size: 32 <br> num_layers: 1 |
+| net10 | 【移動平均】 <br> カウント <br> 気温 <br> 降水量 <br> 風速 <br> 現地気圧 <br> 相対温度 <br> 蒸気圧 <br> 天気 <br> 雲量 <br> 緊急事態宣言(経過日数) | hidden_size: 32 <br> num_layers: 1 |
+| net11 | 【移動平均】 <br> カウント <br> 緊急事態宣言(binary) | hidden_size: 32 <br> num_layers: 1 |
 
 # 参考リンク
 [COVID-19 Challenge - SIGNATE](https://signate.jp/covid-19-challenge/)
