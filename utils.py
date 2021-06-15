@@ -92,7 +92,8 @@ def run(Net, net_name, net_config, train_val_test, epoch, lr=0.001, use_best=Tru
                         loss.backward()
                         optimizer.step()
                     epoch_loss += loss.item()*inputs.size(0)
-                    epoch_mae += F.l1_loss(outputs, label, reduction="sum").item()
+                    epoch_mae += F.l1_loss(train_val_test.inverse_standard(outputs),
+                        train_val_test.inverse_standard(label), reduction="sum").item()
             data_len = len(dataloader.dataset)
             epoch_loss /= data_len
             epoch_mae /= data_len
