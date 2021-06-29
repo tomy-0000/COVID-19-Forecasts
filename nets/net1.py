@@ -2,10 +2,11 @@ import pandas as pd
 import torch.nn as nn
 
 class Net(nn.Module):
-    def __init__(self, hidden_size, num_layers):
+    def __init__(self, hidden_size, num_layers, inverse_standard):
         super().__init__()
         self.lstm = nn.LSTM(1, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, 1)
+        self.inverse_standard = inverse_standard
 
     def forward(self, x):
         x, _ = self.lstm(x)
@@ -14,17 +15,15 @@ class Net(nn.Module):
 
     @staticmethod
     def get_data():
-        df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
+        df = pd.read_csv("./data/count_tokyo.csv", parse_dates=True, index_col=0)
         data = df.to_numpy(dtype=float)[150:]
-        return data
+        normalization_idx = [0]
+        return data, normalization_idx
 
-    dataset_config = {"seq": 30,
-                      "val_test_len": 30,
-                      "batch_size": 10000,
-                      "normalization_idx": [0]}
-
-    net_config = {"hidden_size": 32,
-                  "num_layers": 1}
+    net_params = [
+        ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
+        ("num_layers", [1, 2])
+    ]
 
 # 特徴量
 #   カウント
