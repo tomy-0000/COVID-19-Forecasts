@@ -1,12 +1,10 @@
-import warnings
-import pickle
 import argparse
 import glob
 import os
+import optuna
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import optuna
 
 if "get_ipython" in globals():
     from tqdm.notebook import tqdm
@@ -95,7 +93,7 @@ for net_name, Net in net_dict.items():
         return val_mae
 
     study = optuna.create_study()
-    study.optimize(objective, n_trials=2)
+    study.optimize(objective, n_trials=100)
 
     best_params = study.best_params
     tqdm.write(str(best_params))
