@@ -28,10 +28,11 @@ class Dataset(torch.utils.data.Dataset):
         return self.data[idx + self.seq, 1:].numpy()
 
 class TrainValTest:
-    def __init__(self, data, seq, val_test_len, batch_size=32, normalization_idx=[0]):
+    def __init__(self, data, normalization_idx):
+        self.seq = 30
+        self.batch_size = 10000
         data = data.copy()
-        self.seq = seq
-        val_test_len = val_test_len + seq
+        val_test_len = 30 + self.seq
         train_data = data[:-2*val_test_len]
         val_data = data[-2*val_test_len:-val_test_len]
         test_data = data[-val_test_len:]
@@ -43,18 +44,38 @@ class TrainValTest:
         val_data[:, normalization_idx] = (val_data[:, normalization_idx] - self.mean)/self.std
         test_data[:, normalization_idx] = (test_data[:, normalization_idx] - self.mean)/self.std
 
-        train_dataset = Dataset(train_data, seq)
-        val_dataset = Dataset(val_data, seq)
-        test_dataset = Dataset(test_data, seq)
+        train_dataset = Dataset(train_data, self.seq)
+        val_dataset = Dataset(val_data, self.seq)
+        test_dataset = Dataset(test_data, self.seq)
         self.dataset_dict = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
 
-        train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
-        val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
-        test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
+        train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size)
+        val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=self.batch_size)
+        test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=self.batch_size)
         self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
 
     def inverse_standard(self, data):
         return data*self.std[0] + self.mean[0]
+
+class EarlyStopping:
+    def __init__(self, patience):
+        self.patience = patience
+        self.counter = 0
+        self.best_score = 1e10
+        self.early_stop = False
+        self.state_dict = None
+
+    def __call__(self, net, score):
+        if score <= self.best_score:
+            self.best_score = score
+            self.state_dict = net.state_dict()
+            self.counter = 0
+        else:
+            self.counter += 1
+        if self.counter == self.patience:
+            return True
+        else:
+            return False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
@@ -63,7 +84,6 @@ def run(Net, net_name, net_config, train_val_test, epoch, lr=0.001, use_best=Tru
     dataloader_dict = train_val_test.dataloader_dict
 
     net = Net(**net_config)
-    net.to(DEVICE)
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     criterion = nn.MSELoss()
     result_dict = {"train_loss": [], "train_mae": [],
