@@ -3,7 +3,6 @@ from sklearn.preprocessing import LabelEncoder
 import torch
 import torch.nn as nn
 
-
 class Net(nn.Module):
     def __init__(self, weather_embedding_dim, hidden_size, num_layers):
         super().__init__()
@@ -27,16 +26,14 @@ class Net(nn.Module):
         le = LabelEncoder()
         df["day_name"] = le.fit_transform(df.index.day_name())
         data = df.to_numpy(dtype=float)[150:]
-        return data
+        normalization_idx = [0]
+        return data, normalization_idx
 
-    dataset_config = {"seq": 30,
-                      "val_test_len": 30,
-                      "batch_size": 10000,
-                      "normalization_idx": [0]}
-
-    net_config = {"weather_embedding_dim": 8,
-                  "hidden_size": 32,
-                  "num_layers": 1}
+    net_params = [
+        ("weather_embedding_dim", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
+        ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
+        ("num_layers", [1, 2])
+    ]
 
 # 特徴量
 #   カウント

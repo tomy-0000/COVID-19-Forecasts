@@ -20,15 +20,13 @@ class Net(nn.Module):
         columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         df = df.loc[:, columns]
         data = df.to_numpy(dtype=float)[150:]
-        return data
+        normalization_idx = [0]
+        return data, normalization_idx
 
-    dataset_config = {"seq": 30,
-                      "val_test_len": 30,
-                      "batch_size": 10000,
-                      "normalization_idx": [0]}
-
-    net_config = {"hidden_size": 32,
-                  "num_layers": 1}
+    net_params = [
+        ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
+        ("num_layers", [1, 2])
+    ]
 
 # 特徴量
 #   カウント
