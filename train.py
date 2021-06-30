@@ -34,7 +34,7 @@ net_dict = nets.get_nets(net_name_list)
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def train_val(Net, kwargs, dataloader_dict):
-    net = Net(**kwargs)
+    net = Net(**kwargs).to(DEVICE)
     early_stopping = EarlyStopping(patience)
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     criterion = nn.MSELoss()
