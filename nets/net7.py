@@ -14,7 +14,7 @@ class Net(nn.Module):
 
     @staticmethod
     def get_data():
-        df = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
+        df = pd.read_csv("./data/count_tokyo.csv", parse_dates=True, index_col=0)
         df = df.rolling(window=7).mean()
         data = df.to_numpy(dtype=float)[150:]
         normalization_idx = [0]

@@ -14,12 +14,12 @@ class Net(nn.Module):
 
     @staticmethod
     def get_data():
-        df1 = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/count.csv", parse_dates=True, index_col=0)
+        df1 = pd.read_csv("./data/count_tokyo.csv", parse_dates=True, index_col=0)
         df1["day_name"] = df1.index.day_name()
         df1 = pd.get_dummies(df1, prefix="", prefix_sep="")
         columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         df1 = df1.loc[:, columns]
-        df2 = pd.read_csv("https://raw.githubusercontent.com/tomy-0000/COVID-19-Forecasts/master/data/weather.csv", parse_dates=True, index_col=0)
+        df2 = pd.read_csv("./data/wheather.csv", parse_dates=True, index_col=0)
         df = pd.concat([df1, df2], axis=1)
         data = df.to_numpy(dtype=float)[150:]
         normalization_idx = [0, 8, 9, 10, 11, 12, 13, 14, 15]
