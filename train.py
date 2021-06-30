@@ -1,19 +1,18 @@
 import warnings
-warnings.filterwarnings('ignore')
 import pickle
 import argparse
 import glob
 import os
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import early_stopping
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import optuna
 
 if "get_ipython" in globals():
     from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
-import utils
+from utils import TrainValTest, EarlyStopping
 import nets
 
 parser = argparse.ArgumentParser()
@@ -34,33 +33,71 @@ for net_name in net_name_list:
 
 net_dict = nets.get_nets(net_name_list)
 
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+def train_val(Net, kwargs, dataloader_dict):
+    net = Net(**kwargs)
+    early_stopping = EarlyStopping(patience)
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+    criterion = nn.MSELoss()
+    break_flag = False
+    pbar = tqdm(range(30000), leave=False)
+    for _ in pbar:
+        for phase in ["train", "val"]:
+            dataloader = dataloader_dict[phase]
+            if phase == "train":
+                net.train()
+            else:
+                net.eval()
+            epoch_loss = 0
+            epoch_mae = 0
+            with torch.set_grad_enabled(phase == "train"):
+                for x, t in dataloader:
+                    x = x.to(DEVICE)
+                    t = t.to(DEVICE)
+                    optimizer.zero_grad()
+                    y = net(x)
+                    loss = torch.sqrt(criterion(y, t))
+                    if phase == "train":
+                        loss.backward()
+                        optimizer.step()
+                    epoch_loss += loss.item()*x.size(0)
+                    y2 = inverse_standard(y.detach())
+                    t2 = inverse_standard(t.detach())
+                    epoch_mae += F.l1_loss(y2, t2, reduction="sum").item()
+            data_len = len(dataloader.dataset)
+            epoch_loss /= data_len
+            epoch_mae /= data_len
+            if phase == "val":
+                break_flag = early_stopping(net, epoch_mae)
+                pbar.set_postfix(epoch_mae=f"{epoch_mae:.1f}")
+        if break_flag:
+            break
+        state_dict = early_stopping.state_dict
+        net.load_state_dict(state_dict)
+    return net, epoch_mae
+
 for net_name, Net in net_dict.items():
     tqdm.write(f"【{net_name}】")
 
     data, normalization_idx = Net.get_data()
     net_params = Net.net_params
-    train_val_test = utils.TrainValTest(data, normalization_idx)
+    train_val_test = TrainValTest(data, normalization_idx)
     dataloader_dict = train_val_test.dataloader_dict
     inverse_standard = train_val_test.inverse_standard
-    early_stopping = EarlyStopping(monitor="val_loss", patience=500)
-    trainer = pl.Trainer(callbacks=[early_stopping], max_epochs=30000)
 
     def objective(trial):
-        kwargs = {"inverse_standard": inverse_standard}
+        kwargs = {}
         for net_param in net_params:
             x = trial.suggest_categorical(*net_param)
             kwargs[net_param[0]] = x
-        net = Net(**kwargs)
-        trainer = pl.Trainer(callbacks=[early_stopping], max_epochs=30000)
-        trainer.fit(net, dataloader_dict["train"],
-        dataloader_dict["val"])
-        val_acc = trainer.callback_metrics["val_acc"]
-        return val_acc
+        _, val_mae = train_val(Net, kwargs, dataloader_dict)
+        return val_mae
 
     study = optuna.create_study()
-    study.optimize(objective, n_trials=100)
+    study.optimize(objective, n_trials=2)
 
-        # with open(f'./result_pkl/{net_name}.pkl', 'wb') as f:
-        #     pickle.dump(result, f)
     best_params = study.best_params
-    print(best_params)
+    tqdm.write(str(best_params))
+    net, epoch_mae = train_val(Net, best_params, dataloader_dict)
+    torch.save(net.to("cpu").state_dict(), f"./result_pth/{net_name}.pth")
