@@ -1,6 +1,7 @@
 import argparse
 import glob
 import os
+import re
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,10 +31,15 @@ repeat = args.repeat
 patience = args.patience
 n_trials = args.n_trials
 
-exist_net = set([os.path.basename(i)[:-3] for i in glob.glob("./nets/*.py")])
+exist_net_name_list = [os.path.basename(i)[:-3] for i in glob.glob("./nets/*.py")]
+tmp_net_name_set = set()
 for net_name in net_name_list:
-    if net_name not in exist_net:
-        raise ValueError(f"{net_name} does not exist")
+    net_name = net_name + "$"
+    for exist_net_name in exist_net_name_list:
+        if re.search(net_name, exist_net_name):
+            tmp_net_name_set.add(exist_net_name)
+net_name_list = list(tmp_net_name_set)
+print(net_name_list)
 
 net_dict = nets.get_nets(net_name_list)
 
