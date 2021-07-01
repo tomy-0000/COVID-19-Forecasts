@@ -1,11 +1,15 @@
 import argparse
 import glob
 import os
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
 import optuna
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 if "get_ipython" in globals():
     from tqdm.notebook import tqdm
 else:
@@ -31,9 +35,12 @@ for net_name in net_name_list:
 
 net_dict = nets.get_nets(net_name_list)
 
+with open("./best_params_dict.json") as f:
+    best_params_dict = json.load(f)
+
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def train_val(Net, kwargs, dataloader_dict):
+def train_val(Net, kwargs, dataloader_dict, inverse_standard):
     net = Net(**kwargs).to(DEVICE)
     early_stopping = EarlyStopping(patience)
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
@@ -75,6 +82,36 @@ def train_val(Net, kwargs, dataloader_dict):
         net.load_state_dict(state_dict)
     return net, epoch_mae
 
+def test(net, dataset_dict, inverse_standard):
+    net.eval()
+    for phase in ["train", "test"]:
+        dataset = dataset_dict[phase]
+        seq = dataset.seq
+
+        pred_list = dataset[0][0].numpy()
+        label_list = dataset.get_label()
+        with torch.set_grad_enabled(False):
+            for i in range(len(dataset)):
+                inputs = torch.from_numpy(pred_list[-seq:]).unsqueeze(0)
+                out = net(inputs).numpy()
+                feature = dataset.get_feature(i)
+                out = np.append(out, feature)
+                pred_list = np.vstack([pred_list, out])
+        pred_list = pred_list[:, 0]
+        pred_list = inverse_standard(pred_list)
+        label_list = inverse_standard(label_list)
+        mae = sum(abs(pred_list[seq:] - label_list[seq:]))/len(pred_list[seq:])
+
+        plt.figure(figsize=(12, 8))
+        x = np.arange(len(pred_list))
+        plt.plot(seq - 1, pred_list[seq - 1], ".", c="C0", markersize=20)
+        sns.lineplot(x=x, y=pred_list, label="predict", linewidth=4)
+        sns.lineplot(x=x, y=label_list, label="gt", linewidth=4)
+        plt.title(f"pred_{phase} (mae:{mae:.3f})")
+        plt.legend(fontsize=16)
+        plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
+
+
 for net_name, Net in net_dict.items():
     tqdm.write(f"【{net_name}】")
 
@@ -89,7 +126,7 @@ for net_name, Net in net_dict.items():
         for net_param in net_params:
             x = trial.suggest_categorical(*net_param)
             kwargs[net_param[0]] = x
-        _, val_mae = train_val(Net, kwargs, dataloader_dict)
+        _, val_mae = train_val(Net, kwargs, dataloader_dict, inverse_standard)
         return val_mae
 
     study = optuna.create_study()
@@ -97,5 +134,7 @@ for net_name, Net in net_dict.items():
 
     best_params = study.best_params
     tqdm.write(str(best_params))
-    net, epoch_mae = train_val(Net, best_params, dataloader_dict)
-    torch.save(net.to("cpu").state_dict(), f"./result_pth/{net_name}.pth")
+    best_params_dict[net_name] = best_params
+    net, epoch_mae = train_val(Net, best_params, dataloader_dict, inverse_standard)
+    dataset_dict = train_val_test.dataset_dict
+    test(net, dataset_dict, inverse_standard)
