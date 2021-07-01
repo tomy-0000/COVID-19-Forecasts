@@ -21,12 +21,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("net_list", nargs="*")
 parser.add_argument('--repeat', default=100, type=int)
 parser.add_argument('--patience', default=500, type=int)
+parser.add_argument('--n_trials', default=100, type=int)
 args = parser.parse_args()
 net_name_list = args.net_list
 if not net_name_list:
     raise ValueError("Arguments must be passed")
 repeat = args.repeat
 patience = args.patience
+n_trials = args.n_trials
 
 exist_net = set([os.path.basename(i)[:-3] for i in glob.glob("./nets/*.py")])
 for net_name in net_name_list:
@@ -130,11 +132,13 @@ for net_name, Net in net_dict.items():
         return val_mae
 
     study = optuna.create_study()
-    study.optimize(objective, n_trials=100)
+    study.optimize(objective, n_trials=n_trials)
 
     best_params = study.best_params
-    tqdm.write(str(best_params))
+    tqdm.write(f"{net_name} best params: {str(best_params)}")
     best_params_dict[net_name] = best_params
     net, epoch_mae = train_val(Net, best_params, dataloader_dict, inverse_standard)
     dataset_dict = train_val_test.dataset_dict
     test(net, dataset_dict, inverse_standard)
+    with open("./best_params_dict.json", "w") as f:
+        json.dump(best_params_dict, f, indent=2)
