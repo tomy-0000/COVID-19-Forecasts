@@ -3,11 +3,14 @@ import glob
 import os
 import re
 import json
+import warnings
+warnings.simplefilter("ignore")
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
 import optuna
+optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -48,13 +51,14 @@ with open("./best_params_dict.json") as f:
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def train_val(Net, kwargs, dataloader_dict, inverse_standard):
+def train_val(net_name, Net, kwargs, dataloader_dict, inverse_standard):
     net = Net(**kwargs).to(DEVICE)
     early_stopping = EarlyStopping(patience)
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     criterion = nn.MSELoss()
     break_flag = False
     pbar = tqdm(range(30000), leave=False)
+    pbar.set_description(net_name)
     for _ in pbar:
         for phase in ["train", "val"]:
             dataloader = dataloader_dict[phase]
@@ -135,16 +139,16 @@ for net_name, Net in net_dict.items():
         for net_param in net_params:
             x = trial.suggest_categorical(*net_param)
             kwargs[net_param[0]] = x
-        _, val_mae = train_val(Net, kwargs, dataloader_dict, inverse_standard)
+        _, val_mae = train_val(net_name, Net, kwargs, dataloader_dict, inverse_standard)
         return val_mae
 
     study = optuna.create_study()
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
 
     best_params = study.best_params
     tqdm.write(f"{net_name} best params: {str(best_params)}")
     best_params_dict[net_name] = best_params
-    net, epoch_mae = train_val(Net, best_params, dataloader_dict, inverse_standard)
+    net, epoch_mae = train_val(net_name, Net, best_params, dataloader_dict, inverse_standard)
     dataset_dict = train_val_test.dataset_dict
     test(net, dataset_dict, inverse_standard)
     with open("./best_params_dict.json", "w") as f:
