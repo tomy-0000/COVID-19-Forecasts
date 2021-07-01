@@ -91,6 +91,7 @@ def train_val(Net, kwargs, dataloader_dict, inverse_standard):
     return net, epoch_mae
 
 def test(net, dataset_dict, inverse_standard):
+    net = net.to("cpu")
     net.eval()
     for phase in ["train", "test"]:
         dataset = dataset_dict[phase]
