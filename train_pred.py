@@ -42,7 +42,7 @@ for net_name in net_name_list:
         if re.search(net_name, exist_net_name):
             tmp_net_name_set.add(exist_net_name)
 net_name_list = list(tmp_net_name_set)
-print(net_name_list)
+tqdm.write(str(net_name_list))
 
 net_dict = nets.get_nets(net_name_list)
 
@@ -57,9 +57,9 @@ def train_val(net_name, Net, kwargs, dataloader_dict, inverse_standard):
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     criterion = nn.MSELoss()
     break_flag = False
-    pbar = tqdm(range(30000), leave=False)
-    pbar.set_description(net_name)
-    for _ in pbar:
+    pbar3 = tqdm(range(300), leave=False, position=2)
+    pbar3.set_description("train_val")
+    for _ in pbar3:
         for phase in ["train", "val"]:
             dataloader = dataloader_dict[phase]
             if phase == "train":
@@ -87,7 +87,7 @@ def train_val(net_name, Net, kwargs, dataloader_dict, inverse_standard):
             epoch_mae /= data_len
             if phase == "val":
                 break_flag = early_stopping(net, epoch_mae)
-                pbar.set_postfix(epoch_mae=f"{epoch_mae:.1f}")
+                pbar3.set_postfix(epoch_mae=f"{epoch_mae:.1f}")
         if break_flag:
             break
         state_dict = early_stopping.state_dict
@@ -125,8 +125,9 @@ def test(net, dataset_dict, inverse_standard):
         plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
 
 
-for net_name, Net in net_dict.items():
-    tqdm.write(f"【{net_name}】")
+pbar1 = tqdm(net_dict.items(), position=0)
+for net_name, Net in pbar1:
+    pbar1.set_description(net_name)
 
     data, normalization_idx = Net.get_data()
     net_params = Net.net_params
@@ -140,10 +141,14 @@ for net_name, Net in net_dict.items():
             x = trial.suggest_categorical(*net_param)
             kwargs[net_param[0]] = x
         _, val_mae = train_val(net_name, Net, kwargs, dataloader_dict, inverse_standard)
+        global pbar2
+        pbar2.update()
         return val_mae
 
+    pbar2 = tqdm(total=n_trials, leave=False, position=1)
+    pbar2.set_description("objective")
     study = optuna.create_study()
-    study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
+    study.optimize(objective, n_trials=n_trials)
 
     best_params = study.best_params
     tqdm.write(f"{net_name} best params: {str(best_params)}")
