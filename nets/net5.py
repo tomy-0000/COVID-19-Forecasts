@@ -19,7 +19,7 @@ class Net(nn.Module):
         df1 = pd.get_dummies(df1, prefix="", prefix_sep="")
         columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         df1 = df1.loc[:, columns]
-        df2 = pd.read_csv("./data/wheather.csv", parse_dates=True, index_col=0)
+        df2 = pd.read_csv("./data/weather.csv", parse_dates=True, index_col=0)
         df = pd.concat([df1, df2], axis=1)
         data = df.to_numpy(dtype=float)[150:]
         normalization_idx = [0, 8, 9, 10, 11, 12, 13, 14, 15]
