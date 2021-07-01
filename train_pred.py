@@ -51,13 +51,13 @@ with open("./best_params_dict.json") as f:
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def train_val(net_name, Net, kwargs, dataloader_dict, inverse_standard):
+def train_val(Net, kwargs, dataloader_dict, inverse_standard, tqdm_pos):
     net = Net(**kwargs).to(DEVICE)
     early_stopping = EarlyStopping(patience)
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     criterion = nn.MSELoss()
     break_flag = False
-    pbar3 = tqdm(range(300), leave=False, position=2)
+    pbar3 = tqdm(range(30000), leave=False, position=tqdm_pos)
     pbar3.set_description("train_val")
     for _ in pbar3:
         for phase in ["train", "val"]:
@@ -140,7 +140,7 @@ for net_name, Net in pbar1:
         for net_param in net_params:
             x = trial.suggest_categorical(*net_param)
             kwargs[net_param[0]] = x
-        _, val_mae = train_val(net_name, Net, kwargs, dataloader_dict, inverse_standard)
+        _, val_mae = train_val(Net, kwargs, dataloader_dict, inverse_standard, 2)
         global pbar2
         pbar2.update()
         return val_mae
@@ -153,7 +153,7 @@ for net_name, Net in pbar1:
     best_params = study.best_params
     tqdm.write(f"{net_name} best params: {str(best_params)}")
     best_params_dict[net_name] = best_params
-    net, epoch_mae = train_val(net_name, Net, best_params, dataloader_dict, inverse_standard)
+    net, epoch_mae = train_val(Net, best_params, dataloader_dict, inverse_standard, 1)
     dataset_dict = train_val_test.dataset_dict
     test(net, dataset_dict, inverse_standard)
     with open("./best_params_dict.json", "w") as f:
