@@ -150,8 +150,9 @@ for net_name, Net in pbar1:
     study = optuna.create_study()
     study.optimize(objective, n_trials=n_trials)
 
+    best_value = study.best_value
     best_params = study.best_params
-    tqdm.write(f"{net_name} best params: {str(best_params)}")
+    tqdm.write(f"【{net_name}】 best value: {int(best_value)}, best params: {best_params}")
     best_params_dict[net_name] = best_params
     net, epoch_mae = train_val(Net, best_params, dataloader_dict, inverse_standard, 1)
     dataset_dict = train_val_test.dataset_dict
