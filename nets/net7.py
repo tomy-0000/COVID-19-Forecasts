@@ -2,10 +2,10 @@ import pandas as pd
 import torch.nn as nn
 
 class Net(nn.Module):
-    def __init__(self, hidden_size, num_layers):
+    def __init__(self, hidden_size, num_layers, predict_seq):
         super().__init__()
         self.lstm = nn.LSTM(1, hidden_size, num_layers, batch_first=True)
-        self.linear = nn.Linear(hidden_size, 1)
+        self.linear = nn.Linear(hidden_size, predict_seq)
 
     def forward(self, x):
         x, _ = self.lstm(x)

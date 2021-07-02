@@ -4,12 +4,12 @@ import torch
 import torch.nn as nn
 
 class Net(nn.Module):
-    def __init__(self, weather_embedding_dim, hidden_size, num_layers):
+    def __init__(self, weather_embedding_dim, hidden_size, num_layers, predict_seq):
         super().__init__()
         self.weather_embedding = nn.Embedding(7, weather_embedding_dim)
         feature_num = 1 + weather_embedding_dim
         self.lstm = nn.LSTM(feature_num, hidden_size, num_layers, batch_first=True)
-        self.linear = nn.Linear(hidden_size, 1)
+        self.linear = nn.Linear(hidden_size, predict_seq)
 
     def forward(self, x):
         x, weather = x[:, :, [0]], x[:, 0:, 1].long()
