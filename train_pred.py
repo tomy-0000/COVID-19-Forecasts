@@ -50,6 +50,7 @@ with open("./best_params_dict.json") as f:
     best_params_dict = json.load(f)
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(DEVICE)
 
 def train_val(Net, kwargs, dataloader_dict, inverse_standard, tqdm_pos):
     net = Net(**kwargs).to(DEVICE)
@@ -66,25 +67,19 @@ def train_val(Net, kwargs, dataloader_dict, inverse_standard, tqdm_pos):
                 net.train()
             else:
                 net.eval()
-            epoch_loss = 0
-            epoch_mae = 0
             with torch.set_grad_enabled(phase == "train"):
                 for x, t in dataloader:
                     x = x.to(DEVICE)
                     t = t.to(DEVICE)
                     optimizer.zero_grad()
-                    y = net(x)
+                    y = net(x).unsqueeze(-1)
                     loss = torch.sqrt(criterion(y, t))
                     if phase == "train":
                         loss.backward()
                         optimizer.step()
-                    epoch_loss += loss.item()*x.size(0)
                     y2 = inverse_standard(y.detach())
                     t2 = inverse_standard(t.detach())
-                    epoch_mae += F.l1_loss(y2, t2, reduction="sum").item()
-            data_len = len(dataloader.dataset)
-            epoch_loss /= data_len
-            epoch_mae /= data_len
+                    epoch_mae = F.l1_loss(y2, t2).item()
             if phase == "val":
                 break_flag = early_stopping(net, epoch_mae)
                 pbar3.set_postfix(epoch_mae=f"{epoch_mae:.1f}")
@@ -97,32 +92,24 @@ def train_val(Net, kwargs, dataloader_dict, inverse_standard, tqdm_pos):
 def test(net, dataset_dict, inverse_standard):
     net = net.to("cpu")
     net.eval()
-    for phase in ["train", "test"]:
-        dataset = dataset_dict[phase]
-        seq = dataset.seq
+    with torch.set_grad_enabled(False):
+        for phase in ["train", "test"]:
+            dataset = dataset_dict[phase]
+            x, t = dataset[0]
+            x = x.unsqueeze(0)
+            y = net(x).numpy().reshape(-1)
+            t = t.numpy().reshape(-1)
+            y = inverse_standard(y)
+            t = inverse_standard(t)
+            mae = sum(abs(y - t))/len(y)
 
-        pred_list = dataset[0][0].numpy()
-        label_list = dataset.get_label()
-        with torch.set_grad_enabled(False):
-            for i in range(len(dataset)):
-                inputs = torch.from_numpy(pred_list[-seq:]).unsqueeze(0)
-                out = net(inputs).numpy()
-                feature = dataset.get_feature(i)
-                out = np.append(out, feature)
-                pred_list = np.vstack([pred_list, out])
-        pred_list = pred_list[:, 0]
-        pred_list = inverse_standard(pred_list)
-        label_list = inverse_standard(label_list)
-        mae = sum(abs(pred_list[seq:] - label_list[seq:]))/len(pred_list[seq:])
-
-        plt.figure(figsize=(12, 8))
-        x = np.arange(len(pred_list))
-        plt.plot(seq - 1, pred_list[seq - 1], ".", c="C0", markersize=20)
-        sns.lineplot(x=x, y=pred_list, label="predict", linewidth=4)
-        sns.lineplot(x=x, y=label_list, label="gt", linewidth=4)
-        plt.title(f"pred_{phase} (mae:{mae:.3f})")
-        plt.legend(fontsize=16)
-        plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
+            plt.figure(figsize=(12, 8))
+            x = np.arange(len(y))
+            sns.lineplot(x=x, y=y, label="predict", linewidth=4)
+            sns.lineplot(x=x, y=t, label="gt", linewidth=4)
+            plt.title(f"pred_{phase} (mae:{mae:.3f})")
+            plt.legend(fontsize=16)
+            plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
 
 
 pbar1 = tqdm(net_dict.items(), position=0)
@@ -134,9 +121,10 @@ for net_name, Net in pbar1:
     train_val_test = TrainValTest(data, normalization_idx)
     dataloader_dict = train_val_test.dataloader_dict
     inverse_standard = train_val_test.inverse_standard
+    predict_seq = train_val_test.predict_seq
 
     def objective(trial):
-        kwargs = {}
+        kwargs = {"predict_seq": predict_seq}
         for net_param in net_params:
             x = trial.suggest_categorical(*net_param)
             kwargs[net_param[0]] = x
@@ -154,6 +142,8 @@ for net_name, Net in pbar1:
     best_params = study.best_params
     tqdm.write(f"【{net_name}】 best value: {int(best_value)}, best params: {best_params}")
     best_params_dict[net_name] = best_params
+    best_params = best_params.copy()
+    best_params["predict_seq"] = predict_seq
     net, epoch_mae = train_val(Net, best_params, dataloader_dict, inverse_standard, 1)
     dataset_dict = train_val_test.dataset_dict
     test(net, dataset_dict, inverse_standard)
