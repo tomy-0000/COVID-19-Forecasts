@@ -1,5 +1,7 @@
+import numpy as np
 import pandas as pd
 import torch.nn as nn
+from utils import Standard
 
 class Net(nn.Module):
     def __init__(self, hidden_size, num_layers, predict_seq):
@@ -12,13 +14,38 @@ class Net(nn.Module):
         y = self.linear(x[:, -1, :])
         return y
 
-    @staticmethod
-    def get_data():
+    @classmethod
+    def get_data(cls, i, use_seq, predict_seq):
         df = pd.read_csv("./data/count_tokyo.csv", parse_dates=True, index_col=0)
-        data = df.to_numpy(dtype=float)[150:]
-        normalization_idx = [0]
-        return data, normalization_idx
+        data = df.values.astype(float)[150:-i*predict_seq]
+        train_data = data[:-2*(use_seq + predict_seq)]
+        val_data = data[-2*(use_seq + predict_seq):-(use_seq + predict_seq)]
+        test_data = data[-(use_seq + predict_seq):]
 
+        std = Standard(train_data, cls.normalization_idx)
+        train_data = std.standard(train_data)
+        val_data = std.standard(val_data)
+        test_data = std.standard(test_data)
+
+        tmp = -predict_seq - use_seq + 1
+        train_x, train_t = [], []
+        val_x, val_t = [], []
+        test_x, test_t = [], []
+        for i in range(len(train_data) + tmp):
+            train_x.append(train_data[i:i + use_seq])
+            train_t.append(train_data[i + use_seq:i + use_seq + predict_seq])
+        for i in range(len(val_data) + tmp):
+            val_x.append(val_data[i:i + use_seq])
+            val_t.append(train_data[i + use_seq:i + use_seq + predict_seq])
+        for i in range(len(test_data) + tmp):
+            test_x.append(test_data[i:i + use_seq])
+            test_t.append(train_data[i + use_seq:i + use_seq + predict_seq])
+        train_xt = [train_x, train_t]
+        val_xt = [val_x, val_t]
+        test_xt = [test_x, test_t]
+        return [train_xt, val_xt, test_xt], std
+
+    normalization_idx = [0]
     net_params = [
         ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
         ("num_layers", [1, 2])
