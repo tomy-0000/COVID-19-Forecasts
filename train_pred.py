@@ -46,7 +46,7 @@ tqdm.write(str(net_name_list))
 
 net_dict = nets.get_nets(net_name_list)
 
-with open("./best_params_dict.json") as f:
+with open("./best_params.json") as f:
     best_params_dict = json.load(f)
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -147,5 +147,5 @@ for net_name, Net in pbar1:
     net, epoch_mae = train_val(Net, best_params, dataloader_dict, inverse_standard, 1)
     dataset_dict = train_val_test.dataset_dict
     test(net, dataset_dict, inverse_standard)
-    with open("./best_params_dict.json", "w") as f:
+    with open("./best_params.json", "w") as f:
         json.dump(best_params_dict, f, indent=2)
