@@ -13,18 +13,27 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.x)
 
 class TrainValTest:
-    def __init__(self, data, batch_size=10000):
-        train_xt, val_xt, test_xt = data
+    def __init__(self, data, use_seq, predict_seq, batch_size=10000):
+        train_data, val_data, test_data = data
 
-        train_dataset = Dataset(train_xt)
-        val_dataset = Dataset(val_xt)
-        test_dataset = Dataset(test_xt)
+        train_dataset = self._make_dataset(train_data, use_seq, predict_seq)
+        val_dataset = self._make_dataset(val_data, use_seq, predict_seq)
+        test_dataset = self._make_dataset(test_data, use_seq, predict_seq)
         self.dataset_dict = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
 
         train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
         val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
         test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
         self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
+
+    def _make_dataset(self, data, use_seq, predict_seq):
+        a = predict_seq + use_seq - 1
+        data_x, data_t = [], []
+        for i in range(len(data) - a):
+            data_x.append(data[i:i + use_seq])
+            data_t.append(data[i + use_seq:i + use_seq + predict_seq])
+        data_xt = Dataset([data_x, data_t])
+        return data_xt
 
 class EarlyStopping:
     def __init__(self, patience):

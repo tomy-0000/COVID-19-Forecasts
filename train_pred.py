@@ -121,7 +121,7 @@ for net_name, Net in pbar1:
     for i in reversed(range(4)):
         data, std = Net.get_data(i, use_seq, predict_seq)
         net_params = Net.net_params
-        train_val_test = TrainValTest(data)
+        train_val_test = TrainValTest(data, use_seq, predict_seq)
         dataloader_dict = train_val_test.dataloader_dict
 
         def objective(trial):

@@ -26,24 +26,7 @@ class Net(nn.Module):
         train_data = std.standard(train_data)
         val_data = std.standard(val_data)
         test_data = std.standard(test_data)
-
-        tmp = -predict_seq - use_seq + 1
-        train_x, train_t = [], []
-        val_x, val_t = [], []
-        test_x, test_t = [], []
-        for i in range(len(train_data) + tmp):
-            train_x.append(train_data[i:i + use_seq])
-            train_t.append(train_data[i + use_seq:i + use_seq + predict_seq])
-        for i in range(len(val_data) + tmp):
-            val_x.append(val_data[i:i + use_seq])
-            val_t.append(train_data[i + use_seq:i + use_seq + predict_seq])
-        for i in range(len(test_data) + tmp):
-            test_x.append(test_data[i:i + use_seq])
-            test_t.append(train_data[i + use_seq:i + use_seq + predict_seq])
-        train_xt = [train_x, train_t]
-        val_xt = [val_x, val_t]
-        test_xt = [test_x, test_t]
-        return [train_xt, val_xt, test_xt], std
+        return [train_data, val_data, test_data], std
 
     normalization_idx = [0]
     net_params = [
