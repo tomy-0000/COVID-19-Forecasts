@@ -4,6 +4,17 @@ import glob
 import pandas as pd
 
 #%%
+url = f"https://docs.google.com/spreadsheets/d/10MFfRQTblbOpuvOs_yjIYgntpMGBg592dL8veXoPpp4/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85%E7%B5%B1%E8%A8%88"
+df = pd.read_csv(url)
+df = df.set_index("日付", drop=True)
+
+for i in df:
+    tmp = df[i].astype(str)
+    tmp = tmp.str.replace(",", "")
+    df[i] = pd.to_numeric(tmp, errors="coerce")
+df.to_csv("./data_raw/count.csv")
+
+#%%
 url1 ="https://docs.google.com/spreadsheets/d/1Ot0T8_YZ2Q0dORnKEhcUmuYCqZ1y81PIsIAMB7WZE8g/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2020"
 url2 = "https://docs.google.com/spreadsheets/d/1V1eJM1mupE9gJ6_k0q_77nlFoRuwDuBliMLcMdDMC_E/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2021"
 
@@ -17,8 +28,8 @@ df2 = pd.DataFrame(0, columns=["count"], index=index)
 df2.index.name = "date"
 for date, tmp_df in df.groupby("公表日"):
     df2.loc[date, "count"] += len(tmp_df)
-df2 = df2[df2.index <= datetime.datetime(2021, 5, 31)]
-df2.to_csv("./data/count.csv")
+df2 = df2[datetime.datetime(2020, 3, 1) <= df2.index <= datetime.datetime(2021, 5, 31)]
+df2.to_csv("./data/count_tokyo.csv")
 
 #%%
 csv_list = sorted(glob.glob("./gitignore/202*.csv"))
@@ -38,11 +49,11 @@ df = df.astype({i: j for i, j in zip(names[1:], dtypes)})
 sorted(df["天気"].unique())
 df["天気"] = df["天気"].map({j: i for i, j in enumerate(sorted(df["天気"].unique()))})
 df = df.resample("D").mean()
-df = df[df.index >= datetime.datetime(2020, 1, 24)]
+df = df[df.index >= datetime.datetime(2020, 3, 31)]
 df.to_csv("./data/weather.csv")
 
 #%%
-index = pd.date_range(start=datetime.datetime(2020, 1, 24), end=datetime.datetime(2021, 5, 31))
+index = pd.date_range(start=datetime.datetime(2020, 3, 31), end=datetime.datetime(2021, 5, 31))
 df = pd.DataFrame(0, columns=["緊急事態宣言"], index=index)
 start1 = datetime.datetime(2020, 4, 7)
 end1 = datetime.datetime(2020, 5, 25)
