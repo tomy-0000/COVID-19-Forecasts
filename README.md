@@ -15,10 +15,10 @@ python compare.py net1 net2
 # Net
 |   | 特徴量 | パラメータ |
 | ---- | ---- | ---- |
-| net1 | カウント | hidden_size: 32 <br> num_layers: 1 |
-| net2 | カウント <br> 曜日(one hot encoding) | hidden_size: 32 <br> num_layers: 1 |
-| net3 | カウント <br> 曜日(Embedding) | weather_embedding_dim: 8 <br> hidden_size: 32 <br> num_layers: 1 |
-| net4 | カウント <br> 気温 <br> 降水量 <br> 風速 <br> 現地気圧 <br> 相対温度 <br> 蒸気圧 <br> 天気 <br> 雲量 | hidden_size: 32 <br> num_layers: 1 |
+| net1 | カウント | hidden_size <br> num_layers |
+| net2 | カウント <br> 曜日(one hot encoding) | hidden_size <br> num_layers |
+| net3 | カウント <br> 曜日(Embedding) | day_embedding_dim <br> hidden_size <br> num_layers |
+| net4 | カウント <br> 気温 <br> 降水量 <br> 風速 <br> 現地気圧 <br> 相対温度 <br> 蒸気圧 <br> 天気 <br> 雲量 | hidden_size <br> num_layers |
 | net5 | カウント <br> 曜日(Embedding) <br> 気温 <br> 降水量 <br> 風速 <br> 現地気圧 <br> 相対温度 <br> 蒸気圧 <br> 天気 <br> 雲量 | hidden_size: 32 <br> num_layers: 1 |
 | net6 |  <br> カウント <br> 緊急事態宣言(経過日数) | hidden_size: 32 <br> num_layers: 1 |
 | net7 | 【移動平均】 <br> カウント | hidden_size: 32 <br> num_layers: 1 |
