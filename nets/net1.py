@@ -16,8 +16,8 @@ class Net(nn.Module):
 
     @staticmethod
     def get_data(i, use_seq, predict_seq):
-        data = pd.read_csv("data_use/count.csv")[["東京都"]]
-        data = data.values.astype(float)
+        df = pd.read_csv("data_use/count.csv", parse_dates=True, index_col=0)[["東京都"]]
+        data = df.values.astype(float)
         total_seq = use_seq + predict_seq
         train_data = data[:-2*total_seq]
         val_data = data[-2*total_seq:-total_seq]
@@ -26,10 +26,8 @@ class Net(nn.Module):
 
     normalization_idx = [0]
     net_params = {
-        # "hidden_size": [1, 2, 4, 8, 16, 32, 64, 128, 256],
-        "hidden_size": [8],
-        # "num_layers": [1, 2]
-        "num_layers": [1]
+        "hidden_size": [1, 2, 4, 8, 16, 32, 64, 128, 256],
+        "num_layers": [1, 2]
     }
 
 # 特徴量
