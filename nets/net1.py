@@ -1,7 +1,5 @@
-import numpy as np
 import pandas as pd
 import torch.nn as nn
-from utils import Standard
 
 class Net(nn.Module):
     def __init__(self, hidden_size, num_layers, predict_seq):
