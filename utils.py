@@ -1,10 +1,11 @@
 import numpy as np
 import torch
+import copy
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, xt):
-        self.x = xt[0]
-        self.t = xt[1]
+    def __init__(self, x, t):
+        self.x = x
+        self.t = t
 
     def __getitem__(self, idx):
         return torch.from_numpy(self.x[idx]).float(), torch.from_numpy(self.t[idx]).float()
@@ -13,8 +14,13 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.x)
 
 class TrainValTest:
-    def __init__(self, data, use_seq, predict_seq, batch_size=10000):
+    def __init__(self, data, normalization_idx, use_seq, predict_seq, batch_size=10000):
         train_data, val_data, test_data = data
+        std = Standard(train_data, normalization_idx)
+        train_data = std.standard(train_data)
+        val_data = std.standard(val_data)
+        test_data = std.standard(test_data)
+        self.std = std
 
         train_dataset = self._make_dataset(train_data, use_seq, predict_seq)
         val_dataset = self._make_dataset(val_data, use_seq, predict_seq)
@@ -27,26 +33,26 @@ class TrainValTest:
         self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
 
     def _make_dataset(self, data, use_seq, predict_seq):
-        a = predict_seq + use_seq - 1
-        data_x, data_t = [], []
+        a = use_seq + predict_seq - 1
+        x, t = [], []
         for i in range(len(data) - a):
-            data_x.append(data[i:i + use_seq])
-            data_t.append(data[i + use_seq:i + use_seq + predict_seq])
-        data_xt = Dataset([data_x, data_t])
-        return data_xt
+            x.append(data[i:i + use_seq])
+            t.append(data[i + use_seq:i + use_seq + predict_seq, 0])
+        dataset = Dataset(x, t)
+        return dataset
 
 class EarlyStopping:
     def __init__(self, patience):
         self.patience = patience
         self.counter = 0
-        self.best_score = 1e10
+        self.best_value = 1e10
         self.early_stop = False
         self.state_dict = None
 
-    def __call__(self, net, score):
-        if score <= self.best_score:
-            self.best_score = score
-            self.state_dict = net.state_dict()
+    def __call__(self, net, value):
+        if value <= self.best_value:
+            self.best_value = value
+            self.state_dict = copy.deepcopy(net.state_dict())
             self.counter = 0
         else:
             self.counter += 1
