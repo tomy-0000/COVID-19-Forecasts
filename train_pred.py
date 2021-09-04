@@ -23,14 +23,12 @@ import nets
 
 parser = argparse.ArgumentParser()
 parser.add_argument("net_list", nargs="*")
-parser.add_argument('--repeat', default=100, type=int)
 parser.add_argument('--patience', default=500, type=int)
 parser.add_argument('--n_trials', default=100, type=int)
 args = parser.parse_args()
 net_name_list = args.net_list
 if not net_name_list:
     raise ValueError("Arguments must be passed")
-repeat = args.repeat
 patience = args.patience
 n_trials = args.n_trials
 
