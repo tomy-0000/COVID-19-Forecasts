@@ -13,20 +13,24 @@ class Net(nn.Module):
         return y
 
     @staticmethod
-    def get_data():
-        df = pd.read_csv("./data/count_tokyo.csv", parse_dates=True, index_col=0)
+    def get_data(i, use_seq, predict_seq):
+        df = pd.read_csv("data_use/count.csv", parse_dates=True, index_col=0)[["東京都"]]
         df["day_name"] = df.index.day_name()
         df = pd.get_dummies(df, prefix="", prefix_sep="")
-        columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        columns = ["東京都", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         df = df.loc[:, columns]
-        data = df.to_numpy(dtype=float)[150:]
-        normalization_idx = [0]
-        return data, normalization_idx
+        data = df.values.astype(float)
+        total_seq = use_seq + predict_seq
+        train_data = data[:-2*total_seq]
+        val_data = data[-2*total_seq:-total_seq]
+        test_data = data[-total_seq:]
+        return [train_data, val_data, test_data]
 
-    net_params = [
-        ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
-        ("num_layers", [1, 2])
-    ]
+    normalization_idx = [0]
+    net_params = {
+        "hidden_size": [1, 2, 4, 8, 16, 32, 64, 128, 256],
+        "num_layers": [1, 2]
+    }
 
 # 特徴量
 #   カウント
