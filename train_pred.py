@@ -47,8 +47,13 @@ tqdm.write(str(net_name_list))
 
 net_dict = nets.get_nets(net_name_list)
 
-with open("./best_params.json") as f:
-    best_params_dict = json.load(f)
+if os.path.exists("best_params.json"):
+    with open("best_params.json") as f:
+        best_params_dict = json.load(f)
+else:
+    best_params_dict = {}
+    with open("best_params.json", "w") as f:
+        json.dump(best_params_dict, f)
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
