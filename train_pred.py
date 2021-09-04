@@ -102,8 +102,8 @@ def test(net, net_name, dataset_dict, std):
         for phase in ["train", "val", "test"]:
             dataset = dataset_dict[phase]
             x, t = dataset[0]
-            x = x.unsqueeze(0)
-            y = net(x).numpy().reshape(-1)
+            x = x.unsqueeze(0).to(DEVICE)
+            y = net(x).to("cpu").numpy().reshape(-1)
             t = t.numpy().reshape(-1)
             y2 = std.inverse_standard(y)
             t2 = std.inverse_standard(t)
