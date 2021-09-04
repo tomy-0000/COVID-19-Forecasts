@@ -34,6 +34,9 @@ repeat = args.repeat
 patience = args.patience
 n_trials = args.n_trials
 
+use_seq = 30
+predict_seq = 30
+
 exist_net_name_list = [os.path.basename(i)[:-3] for i in glob.glob("./nets/*.py")]
 tmp_net_name_set = set()
 for net_name in net_name_list:
@@ -72,7 +75,7 @@ def train_val(Net, kwargs, dataloader_dict, std, tqdm_pos):
                     x = x.to(DEVICE)
                     t = t.to(DEVICE)
                     optimizer.zero_grad()
-                    y = net(x).unsqueeze(-1)
+                    y = net(x)
                     loss = torch.sqrt(criterion(y, t))
                     if phase == "train":
                         loss.backward()
@@ -85,68 +88,67 @@ def train_val(Net, kwargs, dataloader_dict, std, tqdm_pos):
                 pbar3.set_postfix(epoch_mae=f"{epoch_mae:.1f}")
         if break_flag:
             break
-        state_dict = early_stopping.state_dict
-        net.load_state_dict(state_dict)
-    return net, epoch_mae
+    state_dict = early_stopping.state_dict
+    best_value = early_stopping.best_value
+    net.load_state_dict(state_dict)
+    return net, best_value
 
-def test(net, dataset_dict, std):
-    net = net.to("cpu")
+def test(net, net_name, dataset_dict, std):
     net.eval()
     with torch.set_grad_enabled(False):
-        for phase in ["train", "test"]:
+        for phase in ["train", "val", "test"]:
             dataset = dataset_dict[phase]
             x, t = dataset[0]
             x = x.unsqueeze(0)
             y = net(x).numpy().reshape(-1)
             t = t.numpy().reshape(-1)
-            y = std.inverse_standard(y)
-            t = std.inverse_standard(t)
-            mae = sum(abs(y - t))/len(y)
-
+            y2 = std.inverse_standard(y)
+            t2 = std.inverse_standard(t)
+            mae = sum(abs(y2 - t2))/len(y2)
             plt.figure(figsize=(12, 8))
-            x = np.arange(len(y))
-            sns.lineplot(x=x, y=y, label="predict", linewidth=4)
-            sns.lineplot(x=x, y=t, label="gt", linewidth=4)
+            x = np.arange(len(y2))
+            sns.lineplot(x=x, y=y2, label="predict", linewidth=4)
+            sns.lineplot(x=x, y=t2, label="gt", linewidth=4)
             plt.title(f"pred_{phase} (mae:{mae:.3f})")
             plt.legend(fontsize=16)
             plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
-
-use_seq = 30
-predict_seq = 30
+            if phase == "test":
+                tqdm.write(f"【{net_name}】 test value: {int(mae)}")
 
 pbar1 = tqdm(net_dict.items(), position=0)
 for net_name, Net in pbar1:
     pbar1.set_description(net_name)
 
-    for i in reversed(range(4)):
-        data, std = Net.get_data(i, use_seq, predict_seq)
-        net_params = Net.net_params
-        train_val_test = TrainValTest(data, use_seq, predict_seq)
-        dataloader_dict = train_val_test.dataloader_dict
+    # for i in reversed(range(4)):  # 時系列のクロスバリデーション(要質問)
+    data = Net.get_data(0, use_seq, predict_seq)  # 後でget_data(i, ...)に変更(要質問)
+    normalization_idx = Net.normalization_idx
+    net_params = Net.net_params
+    train_val_test = TrainValTest(data, normalization_idx, use_seq, predict_seq)
+    std = train_val_test.std
+    dataset_dict = train_val_test.dataset_dict
+    dataloader_dict = train_val_test.dataloader_dict
 
-        def objective(trial):
-            kwargs = {"predict_seq": predict_seq}
-            for net_param in net_params:
-                x = trial.suggest_categorical(*net_param)
-                kwargs[net_param[0]] = x
-            _, val_mae = train_val(Net, kwargs, dataloader_dict, std, 2)
-            global pbar2
-            pbar2.update()
-            return val_mae
+    def objective(trial):
+        kwargs = {"predict_seq": predict_seq}
+        for net_param_key, net_param_value in net_params.items():
+            x = trial.suggest_categorical(net_param_key, net_param_value)
+            kwargs[net_param_key] = x
+        _, val_mae = train_val(Net, kwargs, dataloader_dict, std, 2)
+        pbar2.update()
+        return val_mae
 
-        pbar2 = tqdm(total=n_trials, leave=False, position=1)
-        pbar2.set_description("objective")
-        study = optuna.create_study()
-        study.optimize(objective, n_trials=n_trials)
+    pbar2 = tqdm(total=n_trials, leave=False, position=1)
+    pbar2.set_description("objective")
+    study = optuna.create_study()
+    study.optimize(objective, n_trials=n_trials)
 
-        best_value = study.best_value
-        best_params = study.best_params
-        tqdm.write(f"【{net_name}】 best value: {int(best_value)}, best params: {best_params}")
-        best_params_dict[net_name] = best_params
-        best_params = best_params.copy()
-        best_params["predict_seq"] = predict_seq
-        net, epoch_mae = train_val(Net, best_params, dataloader_dict, std, 1)
-        dataset_dict = train_val_test.dataset_dict
-        test(net, dataset_dict, std)
-        with open("./best_params.json", "w") as f:
-            json.dump(best_params_dict, f, indent=2)
+    best_value = study.best_value
+    best_params = study.best_params
+    tqdm.write(f"【{net_name}】 best value: {int(best_value)}, best params: {best_params}")
+    best_params_dict[net_name] = best_params
+    best_params = best_params.copy()
+    best_params["predict_seq"] = predict_seq
+    net, val_mae = train_val(Net, best_params, dataloader_dict, std, 1)
+    test(net, net_name, dataset_dict, std)
+    with open("./best_params.json", "w") as f:
+        json.dump(best_params_dict, f, indent=2)
