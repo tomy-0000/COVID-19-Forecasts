@@ -3,13 +3,9 @@ COVID-19の感染者数を予測
 
 # Usage
 ```nets/```にnetを定義  
-訓練・予測・maeを保存するため```train_pred.py```を実行 引数として上で定義したnetのファイル名を拡張子抜きで指定(複数指定可)  
+訓練・予測・結果を保存するため```train_pred.py```を実行 引数として上で定義したnetのファイル名を拡張子抜きで指定(正規表現に対応) 結果はresult_imgに保存される
 ```
-python train_pred.py net1 net2
-```
-maeを比較するため```compare.py```を実行 引数として上で定義したnetのファイル名を拡張子抜きで指定(複数指定可) 
-```
-python compare.py net1 net2
+python train_pred.py net[1-9]
 ```
 
 # Net
