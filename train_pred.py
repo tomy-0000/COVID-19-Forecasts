@@ -64,7 +64,7 @@ def train_val(Net, kwargs, dataloader_dict, std, tqdm_pos):
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     criterion = nn.MSELoss()
     break_flag = False
-    pbar3 = tqdm(range(30000), leave=False, position=tqdm_pos)
+    pbar3 = tqdm(range(300000), leave=False, position=tqdm_pos)
     pbar3.set_description("train_val")
     for _ in pbar3:
         for phase in ["train", "val"]:
