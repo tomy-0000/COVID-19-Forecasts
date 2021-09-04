@@ -14,25 +14,23 @@ class Net(nn.Module):
         y = self.linear(x[:, -1, :])
         return y
 
-    @classmethod
-    def get_data(cls, i, use_seq, predict_seq):
-        df = pd.read_csv("./data/count_tokyo.csv", parse_dates=True, index_col=0)
-        data = df.values.astype(float)[150:-i*predict_seq]
-        train_data = data[:-2*(use_seq + predict_seq)]
-        val_data = data[-2*(use_seq + predict_seq):-(use_seq + predict_seq)]
-        test_data = data[-(use_seq + predict_seq):]
-
-        std = Standard(train_data, cls.normalization_idx)
-        train_data = std.standard(train_data)
-        val_data = std.standard(val_data)
-        test_data = std.standard(test_data)
-        return [train_data, val_data, test_data], std
+    @staticmethod
+    def get_data(i, use_seq, predict_seq):
+        data = pd.read_csv("data_use/count.csv")[["東京都"]]
+        data = data.values.astype(float)
+        total_seq = use_seq + predict_seq
+        train_data = data[:-2*total_seq]
+        val_data = data[-2*total_seq:-total_seq]
+        test_data = data[-total_seq:]
+        return [train_data, val_data, test_data]
 
     normalization_idx = [0]
-    net_params = [
-        ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
-        ("num_layers", [1, 2])
-    ]
+    net_params = {
+        # "hidden_size": [1, 2, 4, 8, 16, 32, 64, 128, 256],
+        "hidden_size": [8],
+        # "num_layers": [1, 2]
+        "num_layers": [1]
+    }
 
 # 特徴量
 #   カウント
