@@ -19,9 +19,9 @@ class TrainValTest:
         self.data_dict = {"train": train_data, "val": val_data, "test": test_data}
 
         std = Standard(train_data, normalization_idx)
-        train_data = std.standard(train_data.copy())
-        val_data = std.standard(val_data.copy())
-        test_data = std.standard(test_data.copy())
+        train_data = std.standard(train_data)
+        val_data = std.standard(val_data)
+        test_data = std.standard(test_data)
         self.std = std
 
         train_dataset = self._make_dataset(train_data, use_seq, predict_seq)
@@ -69,6 +69,7 @@ class Standard:
         self.std = np.std(data[:, normalization_idx], axis=0)
 
     def standard(self, data):
+        data = data.copy()
         data[:, self.normalization_idx] = (data[:, self.normalization_idx] - self.mean)/self.std
         return data
 
