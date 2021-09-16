@@ -1,0 +1,14 @@
+﻿人,ソース,公開年月,タスク,データセット,手法
+Akinori Saito,https://signate.jp/competitions/272/discussions/20200510073852-45734,1年前,感染者数予測,,1次関数近似
+SHUI,https://signate.jp/competitions/272/discussions/20200529131814-21004,1年前,感染者数予測,接触頻度は外部データを使用(https://corporate-web.agoop.net/pdf/covid-19/agoop_analysis_coronavirus.pdf),不明(感染者数と接触頻度特性を用いた数学モデル)
+woool_3gou,https://signate.jp/competitions/272/discussions/20200420141403-38408,1年前,感染者数予測,ジャッグジャパン株式会社(https://gis.jag-japan.com/covid19jp/) 更新終了,不明
+MIKE_BOB,https://qiita.com/MIKE_BOB/items/1b432dd3a9ee1e7f37e9,2020年5月10日,感染者数予測,ジャッグジャパン株式会社(https://gis.jag-japan.com/covid19jp/) 更新終了,SIRモデル
+奥村 晴彦,https://oku.edu.mie-u.ac.jp/~okumura/python/sir.html,2020年12月4日,感染者数予測,,SIRモデル
+Francois Lemarchand,https://www.kaggle.com/frlemarchand/covid-19-forecasting-with-an-rnn,1年前,感染者数予測,Kaggle,RNN
+yamaday,https://qiita.com/yamaday/items/7ba01eafa76cc877a6c7,2021年6月8日,感染者数予測,SIGNATE,LSTM
+ハルトノ・ピトヨ,https://nc.chukyo-u.ac.jp/news/detail.html?nid=5100,2020年9月7日,感染者数予測,,Topological Autoencoders・LSTM
+Eswar Chand,https://www.kaggle.com/eswarchandt/timeseries-forecasting-of-covid-19-week-2-arima,1年前,感染者数予測,Kaggle,ARIMA
+Siti Khotijah,https://www.kaggle.com/khotijahs1/covid19-forecasting-randomforest,1年前,感染者数予測,Kaggle,ランダムフォレスト
+佐藤 讓,https://www.es.hokudai.ac.jp/result/2020-05-19-mpe-2/,2020年11月5日,感染者数予測,,SEIRモデル
+otai2003,https://qiita.com/kotai2003/items/ed28fb723a335a873061,2020年3月23日,感染者数予測,,SEIRモデル
+セーター,https://resweater.hatenablog.com/entry/2020/04/25/185006,2020年4月25日,感染者数予測,ジャッグジャパン株式会社(https://gis.jag-japan.com/covid19jp/) 更新終了,ARIMA・SARIMAモデル
