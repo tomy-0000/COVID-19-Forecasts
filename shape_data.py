@@ -5,24 +5,15 @@ import pandas as pd
 
 #%%
 # 感染者数
-url = f"https://docs.google.com/spreadsheets/d/10MFfRQTblbOpuvOs_yjIYgntpMGBg592dL8veXoPpp4/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85%E7%B5%B1%E8%A8%88"
-df = pd.read_csv(url)
-df = df.set_index("日付", drop=True)
-
-for i in df:
-    tmp = df[i].astype(str)
-    tmp = tmp.str.replace(",", "")
-    df[i] = pd.to_numeric(tmp, errors="coerce")
-df.to_csv("./data_raw/count.csv")
-
-#%%
-df = pd.read_csv("./data_raw/count.csv", index_col=0)
-df.loc["2020/06/01":"2021/05/31"].to_csv("./data_use/count.csv")
+count_df = pd.read_csv("data/raw/count.csv", index_col=0, parse_dates=True)
+count_df = count_df[count_df["Prefecture"] == "Tokyo"]
+count_df = count_df.rename(columns={"Newly confirmed cases": "count_0"})
+count_df.to_csv("data/use/count.csv")
 
 #%%
 # 天気
-csv_list = sorted(glob.glob("./data_raw/weather_raw/202*.csv"))
-df = pd.DataFrame()
+csv_list = sorted(glob.glob("data/raw/weather/*.csv"))
+weather_df = pd.DataFrame()
 usecols = [0, 1, 4, 8, 13, 16, 19, 22, 25]
 names = ["日付", "気温", "降水量", "風速", "現地気圧", "相対湿度", "蒸気圧", "天気", "雲量"]
 for csv in csv_list:
@@ -30,40 +21,25 @@ for csv in csv_list:
     tmp_df.index = pd.to_datetime(tmp_df.index)
     use = (7 <= tmp_df.index.hour) & (tmp_df.index.hour <= 15)
     tmp_df = tmp_df[use].fillna(method="bfill")
-    df = pd.concat([df, tmp_df])
-
-df["雲量"] = df["雲量"].str.extract("(\d+)")
+    weather_df = pd.concat([weather_df, tmp_df])
+weather_df["雲量"] = weather_df["雲量"].str.extract("(\d+)")
 dtypes = [float, float, float, float, int, float, int, int]
-df = df.astype({i: j for i, j in zip(names[1:], dtypes)})
-sorted(df["天気"].unique())
-df["天気"] = df["天気"].map({j: i for i, j in enumerate(sorted(df["天気"].unique()))})
-df = df.resample("D").mean()
-df.to_csv("./data_raw/weather.csv")
+weather_df = weather_df.astype({i: j for i, j in zip(names[1:], dtypes)})
+weather_df["天気"] = weather_df["天気"].map({j: i for i, j in enumerate(sorted(weather_df["天気"].unique()))})
+weather_df = weather_df.resample("D").mean()
+weather_df.to_csv("data/use/weather.csv")
 
 #%%
-df = pd.read_csv("./data_raw/weather.csv", index_col=0)
-df.loc["2020-06-01":"2021-05-31"].to_csv("./data_use/wheather.csv")
-
-#%%
-index = pd.date_range(start=datetime.datetime(2020, 3, 31), end=datetime.datetime(2021, 5, 31))
-df = pd.DataFrame(0, columns=["緊急事態宣言"], index=index)
+# 緊急事態宣言
+index = pd.date_range(start=datetime.datetime(2020, 1, 1), end=datetime.datetime(2021, 12, 31))
+emergency_df = pd.DataFrame(0, columns=["緊急事態宣言"], index=index)
 start1 = datetime.datetime(2020, 4, 7)
 end1 = datetime.datetime(2020, 5, 25)
-df.loc[start1:end1, "緊急事態宣言"] = list(range(1, (end1 - start1).days + 2))
-
-start1 = datetime.datetime(2020, 4, 7)
-end1 = datetime.datetime(2020, 5, 25)
-df.loc[start1:end1, "緊急事態宣言"] = list(range(1, (end1 - start1).days + 2))
-
+emergency_df.loc[start1:end1, "緊急事態宣言"] = list(range(1, (end1 - start1).days + 2))
 start2 = datetime.datetime(2021, 1, 8)
 end2 = datetime.datetime(2021, 3, 21)
-df.loc[start2:end2, "緊急事態宣言"] = list(range(1, (end2 - start2).days + 2))
-
+emergency_df.loc[start2:end2, "緊急事態宣言"] = list(range(1, (end2 - start2).days + 2))
 start3 = datetime.datetime(2021, 4, 25)
 end3 = datetime.datetime(2021, 5, 31)
-df.loc[start3:end3, "緊急事態宣言"] = list(range(1, (end3 - start3).days + 2))
-df.to_csv("./data/emergency.csv")
-
-#%%
-df = pd.read_csv("./data_raw/emergency.csv", index_col=0)
-df.loc["2020-06-01":"2021-05-31"].to_csv("./data_use/emergency.csv")
+emergency_df.loc[start3:end3, "緊急事態宣言"] = list(range(1, (end3 - start3).days + 2))
+emergency_df.to_csv("data/use/emergency.csv")
