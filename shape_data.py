@@ -6,8 +6,8 @@ import pandas as pd
 #%%
 # 感染者数
 count_df = pd.read_csv("data/raw/count.csv", index_col=0, parse_dates=True)
-count_df = count_df[count_df["Prefecture"] == "Tokyo"]
-count_df = count_df.rename(columns={"Newly confirmed cases": "count_0"})
+count_df = count_df[count_df["Prefecture"] == "Tokyo"].drop("Prefecture", axis=1)
+count_df = count_df.rename(columns={"Newly confirmed cases": "count"})
 count_df.to_csv("data/use/count.csv")
 
 #%%
