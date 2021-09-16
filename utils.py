@@ -16,6 +16,8 @@ class Dataset(torch.utils.data.Dataset):
 class TrainValTest:
     def __init__(self, data, normalization_idx, use_seq, predict_seq, batch_size=10000):
         train_data, val_data, test_data = data
+        self.data_dict = {"train": train_data, "val": val_data, "test": test_data}
+
         std = Standard(train_data, normalization_idx)
         train_data = std.standard(train_data)
         val_data = std.standard(val_data)
@@ -33,9 +35,8 @@ class TrainValTest:
         self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
 
     def _make_dataset(self, data, use_seq, predict_seq):
-        a = use_seq + predict_seq - 1
         x, t = [], []
-        for i in range(len(data) - a):
+        for i in range(len(data) - use_seq - predict_seq + 1):
             x.append(data[i:i + use_seq])
             t.append(data[i + use_seq:i + use_seq + predict_seq, 0])
         dataset = Dataset(x, t)
@@ -68,6 +69,7 @@ class Standard:
         self.std = np.std(data[:, normalization_idx], axis=0)
 
     def standard(self, data):
+        data = data.copy()
         data[:, self.normalization_idx] = (data[:, self.normalization_idx] - self.mean)/self.std
         return data
 

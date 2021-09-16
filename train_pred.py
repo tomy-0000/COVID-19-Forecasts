@@ -96,22 +96,26 @@ def train_val(Net, kwargs, dataloader_dict, std, tqdm_pos):
     net.load_state_dict(state_dict)
     return net, best_value
 
-def test(net, net_name, dataset_dict, std):
+def test(net, net_name, data_dict, std):
     net.eval()
+    n = 30
     with torch.set_grad_enabled(False):
         for phase in ["train", "val", "test"]:
-            dataset = dataset_dict[phase]
-            x, t = dataset[0]
-            x = x.unsqueeze(0).to(DEVICE)
-            y = net(x).to("cpu").numpy().reshape(-1)
-            t = t.numpy().reshape(-1)
-            y2 = std.inverse_standard(y)
-            t2 = std.inverse_standard(t)
-            mae = sum(abs(y2 - t2))/len(y2)
+            data = data_dict[phase]
+            x, t = std.standard(data[:use_seq]), data[-n:].reshape(-1)
+            y = np.array([])
+            while len(y) < n:
+                x2 = torch.from_numpy(x[-use_seq:]).float().unsqueeze(0).to(DEVICE)
+                y2 = net(x2).to("cpu").numpy().T
+                x = np.append(x, y2, axis=0)
+                y2 = std.inverse_standard(y2.reshape(-1))
+                y = np.append(y, y2)
+            y = y[:n]
+            mae = sum(abs(y - t))/n
             plt.figure(figsize=(12, 8))
-            x = np.arange(len(y2))
-            sns.lineplot(x=x, y=y2, label="predict", linewidth=4)
-            sns.lineplot(x=x, y=t2, label="gt", linewidth=4)
+            x = np.arange(n)
+            sns.lineplot(x=x, y=y, label="predict", linewidth=4)
+            sns.lineplot(x=x, y=t, label="gt", linewidth=4)
             plt.title(f"pred_{phase} (mae:{mae:.3f})")
             plt.legend(fontsize=16)
             plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
@@ -127,6 +131,7 @@ for net_name, Net in pbar1:
     normalization_idx = Net.normalization_idx
     net_params = Net.net_params
     train_val_test = TrainValTest(data, normalization_idx, use_seq, predict_seq)
+    data_dict = train_val_test.data_dict
     std = train_val_test.std
     dataset_dict = train_val_test.dataset_dict
     dataloader_dict = train_val_test.dataloader_dict
@@ -152,6 +157,6 @@ for net_name, Net in pbar1:
     best_params = best_params.copy()
     best_params["predict_seq"] = predict_seq
     net, val_mae = train_val(Net, best_params, dataloader_dict, std, 1)
-    test(net, net_name, dataset_dict, std)
+    test(net, net_name, data_dict, std)
     with open("./best_params.json", "w") as f:
         json.dump(best_params_dict, f, indent=2)
