@@ -47,7 +47,7 @@ def calc_R(S, I, R):
     return R + gamma * I
 
 
-for t in range(200):
+for t in range(365):
     S, I, R = calc_S(S, I, R), calc_I(S, I, R), calc_R(S, I, R)
     Rt = beta * S / gamma
     aS.append(S)
