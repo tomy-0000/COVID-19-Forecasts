@@ -1,6 +1,8 @@
+import copy
+
 import numpy as np
 import torch
-import copy
+
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, x, t):
@@ -8,10 +10,14 @@ class Dataset(torch.utils.data.Dataset):
         self.t = t
 
     def __getitem__(self, idx):
-        return torch.from_numpy(self.x[idx]).float(), torch.from_numpy(self.t[idx]).float()
+        return (
+            torch.from_numpy(self.x[idx]).float(),
+            torch.from_numpy(self.t[idx]).float(),
+        )
 
     def __len__(self):
         return len(self.x)
+
 
 class TrainValTest:
     def __init__(self, data, normalization_idx, use_seq, predict_seq, batch_size=10000):
@@ -27,20 +33,33 @@ class TrainValTest:
         train_dataset = self._make_dataset(train_data, use_seq, predict_seq)
         val_dataset = self._make_dataset(val_data, use_seq, predict_seq)
         test_dataset = self._make_dataset(test_data, use_seq, predict_seq)
-        self.dataset_dict = {"train": train_dataset, "val": val_dataset, "test": test_dataset}
+        self.dataset_dict = {
+            "train": train_dataset,
+            "val": val_dataset,
+            "test": test_dataset,
+        }
 
-        train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
+        train_dataloader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=batch_size
+        )
         val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
-        test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
-        self.dataloader_dict = {"train": train_dataloader, "val": val_dataloader, "test": test_dataloader}
+        test_dataloader = torch.utils.data.DataLoader(
+            test_dataset, batch_size=batch_size
+        )
+        self.dataloader_dict = {
+            "train": train_dataloader,
+            "val": val_dataloader,
+            "test": test_dataloader,
+        }
 
     def _make_dataset(self, data, use_seq, predict_seq):
         x, t = [], []
         for i in range(len(data) - use_seq - predict_seq + 1):
-            x.append(data[i:i + use_seq])
-            t.append(data[i + use_seq:i + use_seq + predict_seq, 0])
+            x.append(data[i : i + use_seq])
+            t.append(data[i + use_seq : i + use_seq + predict_seq, 0])
         dataset = Dataset(x, t)
         return dataset
+
 
 class EarlyStopping:
     def __init__(self, patience):
@@ -62,6 +81,7 @@ class EarlyStopping:
         else:
             return False
 
+
 class Standard:
     def __init__(self, data, normalization_idx):
         self.normalization_idx = normalization_idx
@@ -70,8 +90,10 @@ class Standard:
 
     def standard(self, data):
         data = data.copy()
-        data[:, self.normalization_idx] = (data[:, self.normalization_idx] - self.mean)/self.std
+        data[:, self.normalization_idx] = (
+            data[:, self.normalization_idx] - self.mean
+        ) / self.std
         return data
 
     def inverse_standard(self, data):
-        return data*self.std[0] + self.mean[0]
+        return data * self.std[0] + self.mean[0]

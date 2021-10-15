@@ -57,7 +57,12 @@ def calc_R(S, E, I, R):
 
 
 for t in range(365):
-    S, E, I, R = calc_S(S, E, I, R), calc_E(S, E, I, R), calc_I(S, E, I, R), calc_R(S, E, I, R)
+    S, E, I, R = (
+        calc_S(S, E, I, R),
+        calc_E(S, E, I, R),
+        calc_I(S, E, I, R),
+        calc_R(S, E, I, R),
+    )
     Rt = beta * S / gamma
     aS.append(S)
     aE.append(E)

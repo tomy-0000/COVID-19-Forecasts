@@ -4,9 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+
 sns.set()
 
-url1 ="https://docs.google.com/spreadsheets/d/1Ot0T8_YZ2Q0dORnKEhcUmuYCqZ1y81PIsIAMB7WZE8g/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2020"
+url1 = "https://docs.google.com/spreadsheets/d/1Ot0T8_YZ2Q0dORnKEhcUmuYCqZ1y81PIsIAMB7WZE8g/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2020"
 url2 = "https://docs.google.com/spreadsheets/d/1V1eJM1mupE9gJ6_k0q_77nlFoRuwDuBliMLcMdDMC_E/gviz/tq?tqx=out:csv&sheet=%E7%BD%B9%E6%82%A3%E8%80%85_%E6%9D%B1%E4%BA%AC_2021"
 
 df = pd.concat([pd.read_csv(url1), pd.read_csv(url2)])
@@ -70,7 +71,12 @@ ax.legend()
 fig, ax = plt.subplots()
 fig.set_figheight(6)
 fig.set_figwidth(10)
-ax.stackplot(count_age_rolling_df.index, [i for i in count_age_rolling_df.values.T], labels=age_list, linewidth=0)
+ax.stackplot(
+    count_age_rolling_df.index,
+    [i for i in count_age_rolling_df.values.T],
+    labels=age_list,
+    linewidth=0,
+)
 ax.legend()
 
 # 年代別にカウント
@@ -129,7 +135,11 @@ plt.ylabel("count(人)")
 
 #%%
 plt.figure()
-kinnkyu = [["2020-04-07", "2020-05-25"], ["2021-01-08", "2021-03-21"], ["2021-04-25", "2021-05-31"]]
+kinnkyu = [
+    ["2020-04-07", "2020-05-25"],
+    ["2021-01-08", "2021-03-21"],
+    ["2021-04-25", "2021-05-31"],
+]
 sns.lineplot(data=count_rolling_df)
 for x1, x2 in kinnkyu:
     x1 = pd.to_datetime(x1)

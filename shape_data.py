@@ -17,7 +17,9 @@ weather_df = pd.DataFrame()
 usecols = [0, 1, 4, 8, 13, 16, 19, 22, 25]
 names = ["日付", "気温", "降水量", "風速", "現地気圧", "相対湿度", "蒸気圧", "天気", "雲量"]
 for csv in csv_list:
-    tmp_df = pd.read_csv(csv, encoding="shift-jis", skiprows=3, usecols=usecols, index_col=0, names=names).iloc[3:, :]
+    tmp_df = pd.read_csv(
+        csv, encoding="shift-jis", skiprows=3, usecols=usecols, index_col=0, names=names
+    ).iloc[3:, :]
     tmp_df.index = pd.to_datetime(tmp_df.index)
     use = (7 <= tmp_df.index.hour) & (tmp_df.index.hour <= 15)
     tmp_df = tmp_df[use].fillna(method="bfill")
@@ -25,13 +27,17 @@ for csv in csv_list:
 weather_df["雲量"] = weather_df["雲量"].str.extract("(\d+)")
 dtypes = [float, float, float, float, int, float, int, int]
 weather_df = weather_df.astype({i: j for i, j in zip(names[1:], dtypes)})
-weather_df["天気"] = weather_df["天気"].map({j: i for i, j in enumerate(sorted(weather_df["天気"].unique()))})
+weather_df["天気"] = weather_df["天気"].map(
+    {j: i for i, j in enumerate(sorted(weather_df["天気"].unique()))}
+)
 weather_df = weather_df.resample("D").mean()
 weather_df.to_csv("data/use/weather.csv")
 
 #%%
 # 緊急事態宣言
-index = pd.date_range(start=datetime.datetime(2020, 1, 1), end=datetime.datetime(2021, 12, 31))
+index = pd.date_range(
+    start=datetime.datetime(2020, 1, 1), end=datetime.datetime(2021, 12, 31)
+)
 emergency_df = pd.DataFrame(0, columns=["緊急事態宣言"], index=index)
 start1 = datetime.datetime(2020, 4, 7)
 end1 = datetime.datetime(2020, 5, 25)

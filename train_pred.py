@@ -1,30 +1,35 @@
 import argparse
 import glob
+import json
 import os
 import re
-import json
 import warnings
+
 warnings.simplefilter("ignore")
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
+
 sns.set()
 import optuna
+
 optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 if "get_ipython" in globals():
     from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
-from utils import TrainValTest, EarlyStopping
+
 import nets
+from utils import EarlyStopping, TrainValTest
 
 parser = argparse.ArgumentParser()
 parser.add_argument("net_list", nargs="*")
-parser.add_argument('--patience', default=500, type=int)
-parser.add_argument('--n_trials', default=100, type=int)
+parser.add_argument("--patience", default=500, type=int)
+parser.add_argument("--n_trials", default=100, type=int)
 args = parser.parse_args()
 net_name_list = args.net_list
 if not net_name_list:
@@ -57,6 +62,7 @@ else:
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
+
 
 def train_val(Net, kwargs, dataloader_dict, std, tqdm_pos):
     net = Net(**kwargs).to(DEVICE)
@@ -96,6 +102,7 @@ def train_val(Net, kwargs, dataloader_dict, std, tqdm_pos):
     net.load_state_dict(state_dict)
     return net, best_value
 
+
 def test(net, net_name, data_dict, std):
     net.eval()
     n = 30
@@ -111,7 +118,7 @@ def test(net, net_name, data_dict, std):
                 y2 = std.inverse_standard(y2.reshape(-1))
                 y = np.append(y, y2)
             y = y[:n]
-            mae = sum(abs(y - t))/n
+            mae = sum(abs(y - t)) / n
             plt.figure(figsize=(12, 8))
             x = np.arange(n)
             sns.lineplot(x=x, y=y, label="predict", linewidth=4)
@@ -121,6 +128,7 @@ def test(net, net_name, data_dict, std):
             plt.savefig(f"./result_img/{net_name}_{phase}_pred.png")
             if phase == "test":
                 tqdm.write(f"【{net_name}】 test value: {int(mae)}")
+
 
 pbar1 = tqdm(net_dict.items(), position=0)
 for net_name, Net in pbar1:
@@ -152,7 +160,9 @@ for net_name, Net in pbar1:
 
     best_value = study.best_value
     best_params = study.best_params
-    tqdm.write(f"【{net_name}】 best value: {int(best_value)}, best params: {best_params}")
+    tqdm.write(
+        f"【{net_name}】 best value: {int(best_value)}, best params: {best_params}"
+    )
     best_params_dict[net_name] = best_params
     best_params = best_params.copy()
     best_params["predict_seq"] = predict_seq

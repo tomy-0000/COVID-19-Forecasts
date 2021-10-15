@@ -25,8 +25,9 @@ class Net(nn.Module):
 
     net_params = [
         ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
-        ("num_layers", [1, 2])
+        ("num_layers", [1, 2]),
     ]
+
 
 # 特徴量 移動平均
 #   カウント

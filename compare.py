@@ -3,6 +3,7 @@ import pickle
 import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 sns.set()
 
 parser = argparse.ArgumentParser()
@@ -19,7 +20,9 @@ for result_path in result_path_list:
 
 fig, ax = plt.subplots()
 sns.boxplot(data=result_arr_list, whis=[0, 100])
-sns.stripplot(data=result_arr_list, size=4, color="white", edgecolor="black", linewidth=1)
+sns.stripplot(
+    data=result_arr_list, size=4, color="white", edgecolor="black", linewidth=1
+)
 ax.set_xticklabels(result_name_list)
 ax.set_ylabel("mae")
 plt.savefig(f"./result_img/boxplot_{'_'.join(result_name_list)}.png")

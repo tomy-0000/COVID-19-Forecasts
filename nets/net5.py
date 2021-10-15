@@ -1,6 +1,7 @@
 import pandas as pd
 import torch.nn as nn
 
+
 class Net(nn.Module):
     def __init__(self, hidden_size, num_layers, predict_seq):
         super().__init__()
@@ -17,7 +18,16 @@ class Net(nn.Module):
         df1 = pd.read_csv("./data/count_tokyo.csv", parse_dates=True, index_col=0)
         df1["day_name"] = df1.index.day_name()
         df1 = pd.get_dummies(df1, prefix="", prefix_sep="")
-        columns = ["count", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        columns = [
+            "count",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
         df1 = df1.loc[:, columns]
         df2 = pd.read_csv("./data/weather.csv", parse_dates=True, index_col=0)
         df = pd.concat([df1, df2], axis=1)
@@ -27,8 +37,9 @@ class Net(nn.Module):
 
     net_params = [
         ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
-        ("num_layers", [1, 2])
+        ("num_layers", [1, 2]),
     ]
+
 
 # 特徴量
 #   カウント

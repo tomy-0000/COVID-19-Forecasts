@@ -1,6 +1,7 @@
 import pandas as pd
 import torch.nn as nn
 
+
 class Net(nn.Module):
     def __init__(self, hidden_size, num_layers, predict_seq):
         super().__init__()
@@ -25,8 +26,9 @@ class Net(nn.Module):
 
     net_params = [
         ("hidden_size", [1, 2, 4, 8, 16, 32, 64, 128, 256]),
-        ("num_layers", [1, 2])
+        ("num_layers", [1, 2]),
     ]
+
 
 # 特徴量 移動平均
 #   カウント
