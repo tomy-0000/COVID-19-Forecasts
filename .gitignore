@@ -1,7 +1,4 @@
-.ipynb_checkpoints
-.DS_Store
-gitignore/
-__pycache__
 *.png
 *.pkl
 *.pth
+*.csv
