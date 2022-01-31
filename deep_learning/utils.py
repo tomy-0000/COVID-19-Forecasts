@@ -1,64 +1,29 @@
 import copy
 
 import numpy as np
+import pandas as pd
 import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, x, t):
-        self.x = x
-        self.t = t
+    def __init__(self, x, t, location, location_num):
+        self.x = np.array(x)
+        self.t = np.array(t)
+        self.location = np.array(location)
+        self.location_num = location_num
+        self.size = self.t.size
 
     def __getitem__(self, idx):
         return (
             torch.from_numpy(self.x[idx]).float(),
             torch.from_numpy(self.t[idx]).float(),
+            torch.tensor(self.location[idx]).long(),
         )
 
     def __len__(self):
         return len(self.x)
-
-
-class TrainValTest:
-    def __init__(self, data, normalization_idx, use_seq, predict_seq, batch_size=10000):
-        train_data, val_data, test_data = data
-        self.data_dict = {"train": train_data, "val": val_data, "test": test_data}
-
-        std = Standard(train_data, normalization_idx)
-        train_data = std.standard(train_data)
-        val_data = std.standard(val_data)
-        test_data = std.standard(test_data)
-        self.std = std
-
-        train_dataset = self._make_dataset(train_data, use_seq, predict_seq)
-        val_dataset = self._make_dataset(val_data, use_seq, predict_seq)
-        test_dataset = self._make_dataset(test_data, use_seq, predict_seq)
-        self.dataset_dict = {
-            "train": train_dataset,
-            "val": val_dataset,
-            "test": test_dataset,
-        }
-
-        train_dataloader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=batch_size
-        )
-        val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
-        test_dataloader = torch.utils.data.DataLoader(
-            test_dataset, batch_size=batch_size
-        )
-        self.dataloader_dict = {
-            "train": train_dataloader,
-            "val": val_dataloader,
-            "test": test_dataloader,
-        }
-
-    def _make_dataset(self, data, use_seq, predict_seq):
-        x, t = [], []
-        for i in range(len(data) - use_seq - predict_seq + 1):
-            x.append(data[i : i + use_seq])
-            t.append(data[i + use_seq : i + use_seq + predict_seq, 0])
-        dataset = Dataset(x, t)
-        return dataset
 
 
 class EarlyStopping:
@@ -82,18 +47,71 @@ class EarlyStopping:
             return False
 
 
-class Standard:
-    def __init__(self, data, normalization_idx):
-        self.normalization_idx = normalization_idx
-        self.mean = np.mean(data[:, normalization_idx], axis=0)
-        self.std = np.std(data[:, normalization_idx], axis=0)
+def get_dataloader(X_seq, t_seq, data_src="Japan"):
+    if data_src == "Japan":
+        df = pd.read_csv("data/raw/Japan.csv").drop("ALL", axis=1)
+    elif data_src == "World":
+        df = pd.read_csv("data/raw/World.csv")
+        df_group = df.groupby("location")
 
-    def standard(self, data):
-        data = data.copy()
-        data[:, self.normalization_idx] = (
-            data[:, self.normalization_idx] - self.mean
-        ) / self.std
-        return data
+        def func(df):
+            location = df["location"].iat[0]
+            return pd.DataFrame({"Date": df["date"], location: df["new_cases"]})
 
-    def inverse_standard(self, data):
-        return data * self.std[0] + self.mean[0]
+        df_group.apply(func)
+
+        df = pd.DataFrame({"Date": []})
+        for i in df_group:
+            df = pd.merge(df, func(i[1]), on="Date", how="outer")
+        df = df.sort_values("Date").reset_index(drop=True)
+    elif data_src == "Tokyo":
+        df = pd.read_csv("data/raw/Japan.csv")
+        df = df[["Date", "Tokyo"]]
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.resample("W", on="Date").mean()
+    data = np.nan_to_num(df.values, 0.0)
+
+    train_data, val_data = train_test_split(data, train_size=0.6, shuffle=False)
+    val_data, test_data = train_test_split(val_data, train_size=0.5, shuffle=False)
+
+    min_max_scaler = MinMaxScaler()
+    min_max_scaler.fit(train_data)
+    train_data = min_max_scaler.transform(train_data)
+    val_data = min_max_scaler.transform(val_data)
+    test_data = min_max_scaler.transform(test_data)
+
+    train_data = train_data.T
+    val_data = val_data.T
+    test_data = test_data.T
+
+    train_X = []
+    train_t = []
+    train_location = []
+    val_X = []
+    val_t = []
+    val_location = []
+    test_X = []
+    test_t = []
+    test_location = []
+    for data, X, t, location in [
+        [train_data, train_X, train_t, train_location],
+        [val_data, val_X, val_t, val_location],
+        [test_data, test_X, test_t, test_location],
+    ]:
+        now_idx = data.shape[1] - 1
+        while True:
+            if now_idx - X_seq - t_seq < 0:
+                break
+            X += data[:, now_idx - X_seq - t_seq : now_idx - t_seq].tolist()
+            t += data[:, now_idx - t_seq : now_idx].tolist()
+            now_idx -= t_seq
+            location += list(range(data.shape[0]))
+
+    location_num = len(np.unique(location))
+    train_dataset = Dataset(train_X, train_t, train_location, location_num)
+    val_dataset = Dataset(val_X, val_t, val_location, location_num)
+    test_dataset = Dataset(test_X, test_t, test_location, location_num)
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=4096, shuffle=False)
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=4096)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=4096)
+    return train_dataloader, val_dataloader, test_dataloader, min_max_scaler
