@@ -9,9 +9,9 @@ from sklearn.preprocessing import MinMaxScaler
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, x, t, location, location_num):
-        self.x = np.array(x)
-        self.t = np.array(t)
-        self.location = np.array(location)
+        self.x = np.array(list(reversed(x)))
+        self.t = np.array(list(reversed(t)))
+        self.location = np.array(list(reversed(location)))
         self.location_num = location_num
         self.size = self.t.size
 
@@ -68,8 +68,10 @@ def get_dataloader(X_seq, t_seq, data_src="Japan"):
         df = pd.read_csv("data/raw/Japan.csv")
         df = df[["Date", "Tokyo"]]
     df["Date"] = pd.to_datetime(df["Date"])
+    df = df.iloc[:-30]
     df = df.resample("W", on="Date").mean()
     data = np.nan_to_num(df.values, 0.0)
+    location2id = {i: j for j, i in enumerate(df.columns)}
 
     train_data, val_data = train_test_split(data, train_size=0.6, shuffle=False)
     val_data, test_data = train_test_split(val_data, train_size=0.5, shuffle=False)
@@ -98,7 +100,7 @@ def get_dataloader(X_seq, t_seq, data_src="Japan"):
         [val_data, val_X, val_t, val_location],
         [test_data, test_X, test_t, test_location],
     ]:
-        now_idx = data.shape[1] - 1
+        now_idx = data.shape[1]
         while True:
             if now_idx - X_seq - t_seq < 0:
                 break
@@ -114,4 +116,4 @@ def get_dataloader(X_seq, t_seq, data_src="Japan"):
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=4096, shuffle=False)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=4096)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=4096)
-    return train_dataloader, val_dataloader, test_dataloader, min_max_scaler
+    return train_dataloader, val_dataloader, test_dataloader, min_max_scaler, location2id
