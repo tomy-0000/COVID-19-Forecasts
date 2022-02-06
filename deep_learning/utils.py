@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -70,7 +70,6 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
         df = pd.read_csv("data/raw/Japan.csv")
         df = df[["Date", "Tokyo"]]
     df["Date"] = pd.to_datetime(df["Date"])
-    df = df.iloc[:-30]
     df = df.resample("W", on="Date").mean()
     data = np.nan_to_num(df.values, 0.0)
     location2id = {i: j for j, i in enumerate(df.columns)}
@@ -78,11 +77,12 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
     train_data, val_data = train_test_split(data, train_size=0.6, shuffle=False)
     val_data, test_data = train_test_split(val_data, train_size=0.5, shuffle=False)
 
-    min_max_scaler = MinMaxScaler()
-    min_max_scaler.fit(train_data)
-    train_data = min_max_scaler.transform(train_data)
-    val_data = min_max_scaler.transform(val_data)
-    test_data = min_max_scaler.transform(test_data)
+    # scaler = MinMaxScaler()
+    scaler = StandardScaler()
+    scaler.fit(train_data)
+    train_data = scaler.transform(train_data)
+    val_data = scaler.transform(val_data)
+    test_data = scaler.transform(test_data)
 
     train_data = train_data.T
     val_data = val_data.T
@@ -118,4 +118,4 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=4096, shuffle=True)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=4096)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=4096)
-    return train_dataloader, val_dataloader, test_dataloader, min_max_scaler, location2id
+    return train_dataloader, val_dataloader, test_dataloader, scaler, location2id
