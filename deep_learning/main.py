@@ -44,7 +44,7 @@ def train(net, optimizer, dataloader, scaler):
         t_inverse = inverse_scaler(t, location, location_num, scaler)
         mae += abs(y_inverse - t_inverse).sum()
     loss = (loss / dataloader.dataset.size) ** 0.5
-    mae /= dataloader.dataset.size
+    mae = mae / dataloader.dataset.size
     return loss, mae
 
 
@@ -63,7 +63,7 @@ def val_test(net, dataloader, scaler):
             t_inverse = inverse_scaler(t, location, location_num, scaler)
             mae += abs(y_inverse - t_inverse).sum()
     loss = (loss / dataloader.dataset.size) ** 0.5
-    mae /= dataloader.dataset.size
+    mae = mae / dataloader.dataset.size
     return loss, mae
 
 
@@ -78,12 +78,14 @@ def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list):
     plt.plot(train_mae_list, label="train")
     plt.plot(val_mae_list, label="val")
     plt.legend()
-    plt.title("acc")
+    plt.title("mae")
     plt.savefig("mae.png")
 
 
 def plot_predict(net, dataloader, location2id, scaler, mode):
     # len(dataloader) == 1の時だけ
+    _, t, _ = dataloader.dataset[0]
+    t_seq = len(t)
     for location_str, location_id in tqdm(location2id.items()):
         net.eval()
         y_inverse = []
@@ -104,10 +106,10 @@ def plot_predict(net, dataloader, location2id, scaler, mode):
         mae = abs(np.array(y_inverse) - np.array(t_inverse)).sum()
         mae /= cnt
         fig, ax = plt.subplots()
-        for i in range(0, len(y_inverse), 4):
+        for i in range(0, len(y_inverse), t_seq):
             if i > 0:
                 ax.plot(range(i - 1, i + 1), y_inverse[i - 1 : i + 1], color="C0", linestyle="--")
-            ax.plot(range(i, i + 4), y_inverse[i : i + 4], color="C0")
+            ax.plot(range(i, i + t_seq), y_inverse[i : i + t_seq], color="C0")
         ax.lines[0].set_label("predict")
         ax.plot(t_inverse, label="ground truth", color="C1")
         ax.legend()
@@ -115,59 +117,47 @@ def plot_predict(net, dataloader, location2id, scaler, mode):
         fig.savefig(f"deep_learning/result/{mode}/sequential_{location_str}.png")
         plt.close(fig)
 
-        # 相関係数
-        # plt.figure()
-        # r = np.corrcoef(t_inverse, y_inverse)[0][1]
-        # plt.plot(t_inverse, y_inverse, "o")
-        # plt.axis("square")
-        # plt.xlabel("ground truth")
-        # plt.ylabel("predict")
-        # plt.title(f"r_{location_str}_{r:.3f}.png")
-        # plt.savefig(f"deep_learning/result/r_{location_str}.png")
-        # plt.close()
 
-
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["World", "Japan", "Tokyo"], default="World")
     parser.add_argument("--X_seq", type=int, default=10)
     parser.add_argument("--t_seq", type=int, default=4)
     args = parser.parse_args()
-net = transformer_net.TransformerNet(
-    d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
-).to(DEVICE)
-    train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(X_seq, t_seq, args.mode)
 
-train_loss_list = []
-val_loss_list = []
-train_mae_list = []
-val_mae_list = []
-epoch = 10000
-optimizer = optim.Adam(net.parameters(), lr=1e-5)
-pbar = tqdm(total=epoch, position=0)
-desc = tqdm(total=epoch, position=1, bar_format="{desc}", desc="")
-for epoch in range(epoch):
-    train_loss, train_mae = train(net, optimizer, train_dataloader, scaler)
-    val_loss, val_mae = val_test(net, val_dataloader, scaler)
-    train_loss_list.append(train_loss)
-    val_loss_list.append(val_loss)
-    train_mae_list.append(train_mae)
-    val_mae_list.append(val_mae)
-    if early_stopping(net, val_loss):
-        break
-    pbar.update(1)
-    desc.set_description(
-        f"Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Train mae: {train_mae:.3f} | Val mae: {val_mae:.3f} | Best Val Loss: {early_stopping.best_value:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
+    net = transformer_net.TransformerNet(
+        d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
+    ).to(DEVICE)
+    train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(
+        args.X_seq, args.t_seq, args.mode
     )
-    # tqdm.write(
-    #     f"Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Train mae: {train_mae:.3f} | Val mae: {val_mae:.3f} | Best Val Loss: {early_stopping.best_value:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
-    # )
-pbar.clear()
-desc.clear()
-plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list)
+    early_stopping = EarlyStopping(20)
 
-test_loss, test_mae = val_test(net, test_dataloader, scaler)
-tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
-# print()
-mae_list = []
-# for i in range(47):
-    mae_list.append(plot_predict(net, test_dataloader, location2id, scaler, args.mode))
+    train_loss_list = []
+    val_loss_list = []
+    train_mae_list = []
+    val_mae_list = []
+    epoch = 100000
+    optimizer = optim.Adam(net.parameters(), lr=1e-5)
+    pbar = tqdm(total=epoch, position=0)
+    desc = tqdm(total=epoch, position=1, bar_format="{desc}", desc="")
+    for epoch in range(epoch):
+        train_loss, train_mae = train(net, optimizer, train_dataloader, scaler)
+        val_loss, val_mae = val_test(net, val_dataloader, scaler)
+        train_loss_list.append(train_loss)
+        val_loss_list.append(val_loss)
+        train_mae_list.append(train_mae)
+        val_mae_list.append(val_mae)
+        if early_stopping(net, val_loss):
+            break
+        pbar.update(1)
+        desc.set_description(
+            f"Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Train MAE: {train_mae:.3f} | Val MAE: {val_mae:.3f} | Best Val Loss: {early_stopping.best_value:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
+        )
+    pbar.clear()
+    desc.clear()
+    plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list)
+
+    test_loss, test_mae = val_test(net, test_dataloader, scaler)
+    tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
+    plot_predict(net, test_dataloader, location2id, scaler, args.mode)
