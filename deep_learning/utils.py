@@ -114,8 +114,10 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
     location_num = len(np.unique(location))
     train_dataset = Dataset(train_X, train_t, train_location, location_num)
     val_dataset = Dataset(val_X, val_t, val_location, location_num)
+    train2_dataset = Dataset(val_X + train_X, val_t + train_t, val_location + train_location, location_num)
     test_dataset = Dataset(test_X, test_t, test_location, location_num)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=4096, shuffle=True)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=4096)
+    train2_dataloader = torch.utils.data.DataLoader(train2_dataset, batch_size=4096, shuffle=True)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=4096)
-    return train_dataloader, val_dataloader, test_dataloader, scaler, location2id
+    return train_dataloader, val_dataloader, train2_dataloader, test_dataloader, scaler, location2id
