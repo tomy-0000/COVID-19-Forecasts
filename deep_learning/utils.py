@@ -49,10 +49,10 @@ class EarlyStopping:
             return False
 
 
-def get_dataloader(X_seq, t_seq, data_src="Japan"):
-    if data_src == "Japan":
+def get_dataloader(X_seq, t_seq, mode="Japan"):
+    if mode == "Japan":
         df = pd.read_csv("data/raw/Japan.csv").drop("ALL", axis=1)
-    elif data_src == "World":
+    elif mode == "World":
         df = pd.read_csv("data/raw/World.csv")
         df_group = df.groupby("location")
 
@@ -66,7 +66,7 @@ def get_dataloader(X_seq, t_seq, data_src="Japan"):
         for i in df_group:
             df = pd.merge(df, func(i[1]), on="Date", how="outer")
         df = df.sort_values("Date").reset_index(drop=True)
-    elif data_src == "Tokyo":
+    elif mode == "Tokyo":
         df = pd.read_csv("data/raw/Japan.csv")
         df = df[["Date", "Tokyo"]]
     df["Date"] = pd.to_datetime(df["Date"])
