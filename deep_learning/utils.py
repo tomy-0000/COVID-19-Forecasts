@@ -6,6 +6,8 @@ import torch
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, x, t, location, location_num):
