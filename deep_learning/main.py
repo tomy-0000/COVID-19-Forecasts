@@ -12,6 +12,8 @@ import transformer_net
 from utils import EarlyStopping, get_dataloader, DEVICE
 
 sns.set()
+torch.manual_seed(0)
+torch.backends.cudnn.benchmark = False
 
 
 def inverse_scaler(x, location, location_num, scaler):
