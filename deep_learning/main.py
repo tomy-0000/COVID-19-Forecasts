@@ -73,13 +73,13 @@ def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list):
     plt.plot(val_loss_list, label="val")
     plt.legend()
     plt.title("loss")
-    plt.savefig("loss.png")
+    plt.savefig("deep_learning/result/loss.png")
     plt.figure()
     plt.plot(train_mae_list, label="train")
     plt.plot(val_mae_list, label="val")
     plt.legend()
     plt.title("mae")
-    plt.savefig("mae.png")
+    plt.savefig("deep_learning/result/mae.png")
 
 
 def plot_predict(net, dataloader, location2id, scaler, mode):
@@ -113,8 +113,8 @@ def plot_predict(net, dataloader, location2id, scaler, mode):
         ax.lines[0].set_label("predict")
         ax.plot(t_inverse, label="ground truth", color="C1")
         ax.legend()
-        ax.set_title(f"sequential_{location_str}_{mae:.1f}.png")
-        fig.savefig(f"deep_learning/result/{mode}/sequential_{location_str}.png")
+        ax.set_title(f"{location_str}_{mae:.1f}.png")
+        fig.savefig(f"deep_learning/result/{mode}/{location_str}.png")
         plt.close(fig)
 
 
