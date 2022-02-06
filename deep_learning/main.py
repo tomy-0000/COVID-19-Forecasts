@@ -1,4 +1,5 @@
-#%%
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -79,7 +80,7 @@ def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list):
     plt.savefig("mae.png")
 
 
-def plot_predict(net, dataloader, location2id, scaler):
+def plot_predict(net, dataloader, location2id, scaler, mode):
     # len(dataloader) == 1の時だけ
     for location_str, location_id in tqdm(location2id.items()):
         net.eval()
@@ -109,7 +110,7 @@ def plot_predict(net, dataloader, location2id, scaler):
         ax.plot(t_inverse, label="ground truth", color="C1")
         ax.legend()
         ax.set_title(f"sequential_{location_str}_{mae:.1f}.png")
-        fig.savefig(f"deep_learning/result/sequential_{location_str}.png")
+        fig.savefig(f"deep_learning/result/{mode}/sequential_{location_str}.png")
         plt.close(fig)
 
         # 相関係数
@@ -124,11 +125,15 @@ def plot_predict(net, dataloader, location2id, scaler):
         # plt.close()
 
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["World", "Japan", "Tokyo"], default="World")
+    parser.add_argument("--X_seq", type=int, default=10)
+    parser.add_argument("--t_seq", type=int, default=4)
+    args = parser.parse_args()
 net = transformer_net.TransformerNet(
     d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
 ).to(DEVICE)
-train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(10, 4, "World")
-early_stopping = EarlyStopping(20)
+    train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(X_seq, t_seq, args.mode)
 
 train_loss_list = []
 val_loss_list = []
@@ -163,5 +168,4 @@ tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
 # print()
 mae_list = []
 # for i in range(47):
-mae_list.append(plot_predict(net, test_dataloader, location2id, scaler))
-# print(sum(mae_list) / len(mae_list))
+    mae_list.append(plot_predict(net, test_dataloader, location2id, scaler, args.mode))
