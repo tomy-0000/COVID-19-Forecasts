@@ -8,59 +8,58 @@ import torch.optim as optim
 from tqdm.auto import tqdm
 
 import transformer_net
-from utils import EarlyStopping, get_dataloader
+from utils import EarlyStopping, get_dataloader, DEVICE
 
 sns.set()
 
 
-def inverse_min_max_scaler(x, location, location_num, min_max_scaler):
-    x = x.detach().cpu().numpy()
-    location = location.numpy().repeat(x.shape[-1])
-    x = x.reshape(-1)
-    placeholder = np.zeros([len(x), location_num])
+def inverse_scaler(x, location, location_num, scaler):
+    x = x.detach().cpu().numpy()  # [N, T]
+    location = location.numpy().repeat(x.shape[-1])  # [N*T]
+    x = x.reshape(-1)  # [N*T]
+    placeholder = np.zeros([len(x), location_num])  # [N*T, location_num]
     placeholder[range(len(placeholder)), location] = x
-    x_inverse = min_max_scaler.inverse_transform(placeholder)[range(len(placeholder)), location]
+    x_inverse = scaler.inverse_transform(placeholder)[range(len(placeholder)), location]  # [N*T]
     return x_inverse
 
 
-def train(net, optimizer, dataloader, min_max_scaler):
+def train(net, optimizer, dataloader, scaler):
     net.train()
     loss = 0.0
     mae = 0.0
     for X, t, location in dataloader:
-        X = X.cuda()
-        t = t.cuda()
+        X = X.to(DEVICE)
+        t = t.to(DEVICE)
         optimizer.zero_grad()
         y = net(X, t)
-        print()
-        batch_loss = torch.sqrt(F.mse_loss(y, t))
+        batch_loss = F.mse_loss(y, t) ** 0.5
         batch_loss.backward()
         optimizer.step()
-        loss += F.mse_loss(y, t, reduction="sum").detach().item() ** 0.5
+        loss += F.mse_loss(y, t, reduction="sum").detach().item()
         location_num = dataloader.dataset.location_num
-        y_inverse = inverse_min_max_scaler(y, location, location_num, min_max_scaler)
-        t_inverse = inverse_min_max_scaler(t, location, location_num, min_max_scaler)
+        y_inverse = inverse_scaler(y, location, location_num, scaler)
+        t_inverse = inverse_scaler(t, location, location_num, scaler)
         mae += abs(y_inverse - t_inverse).sum()
-    loss /= dataloader.dataset.size
+    loss = (loss / dataloader.dataset.size) ** 0.5
     mae /= dataloader.dataset.size
     return loss, mae
 
 
-def val_test(net, dataloader, min_max_scaler):
+def val_test(net, dataloader, scaler):
     net.eval()
     loss = 0.0
     mae = 0.0
     with torch.no_grad():
         for X, t, location in dataloader:
-            X = X.cuda()
-            t = t.cuda()
+            X = X.to(DEVICE)
+            t = t.to(DEVICE)
             y = net(X, t)
-            loss += F.mse_loss(y, t, reduction="sum").detach().item() ** 0.5
+            loss += F.mse_loss(y, t, reduction="sum").detach().item()
             location_num = dataloader.dataset.location_num
-            y_inverse = inverse_min_max_scaler(y, location, location_num, min_max_scaler)
-            t_inverse = inverse_min_max_scaler(t, location, location_num, min_max_scaler)
+            y_inverse = inverse_scaler(y, location, location_num, scaler)
+            t_inverse = inverse_scaler(t, location, location_num, scaler)
             mae += abs(y_inverse - t_inverse).sum()
-    loss /= dataloader.dataset.size
+    loss = (loss / dataloader.dataset.size) ** 0.5
     mae /= dataloader.dataset.size
     return loss, mae
 
@@ -80,7 +79,7 @@ def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list):
     plt.savefig("mae.png")
 
 
-def plot_predict(net, dataloader, location2id, min_max_scaler):
+def plot_predict(net, dataloader, location2id, scaler):
     # len(dataloader) == 1の時だけ
     for location_str, location_id in tqdm(location2id.items()):
         net.eval()
@@ -92,48 +91,56 @@ def plot_predict(net, dataloader, location2id, min_max_scaler):
                 X = X[location == location_id]
                 t = t[location == location_id]
                 location = location[location == location_id]
-                X = X.cuda()
-                t = t.cuda()
+                X = X.to(DEVICE)
+                t = t.to(DEVICE)
                 y = net(X, t)
                 location_num = dataloader.dataset.location_num
-                y_inverse += inverse_min_max_scaler(y, location, location_num, min_max_scaler).tolist()
-                t_inverse += inverse_min_max_scaler(t, location, location_num, min_max_scaler).tolist()
+                y_inverse += inverse_scaler(y, location, location_num, scaler).tolist()
+                t_inverse += inverse_scaler(t, location, location_num, scaler).tolist()
                 cnt += len(y_inverse)
         mae = abs(np.array(y_inverse) - np.array(t_inverse)).sum()
         mae /= cnt
-        plt.figure()
-        plt.plot(y_inverse, label="predict")
-        plt.plot(t_inverse, label="ground truth")
-        plt.legend()
-        plt.title(f"sequential_{location_str}_{mae:.1f}.png")
-        plt.savefig(f"deep_learning/result/sequential_{location_str}.png")
-        plt.close()
+        fig, ax = plt.subplots()
+        for i in range(0, len(y_inverse), 4):
+            if i > 0:
+                ax.plot(range(i - 1, i + 1), y_inverse[i - 1 : i + 1], color="C0", linestyle="--")
+            ax.plot(range(i, i + 4), y_inverse[i : i + 4], color="C0")
+        ax.lines[0].set_label("predict")
+        ax.plot(t_inverse, label="ground truth", color="C1")
+        ax.legend()
+        ax.set_title(f"sequential_{location_str}_{mae:.1f}.png")
+        fig.savefig(f"deep_learning/result/sequential_{location_str}.png")
+        plt.close(fig)
+
         # 相関係数
-        r = np.corrcoef(t_inverse, y_inverse)[0][1]
-        plt.plot(t_inverse, y_inverse, ".")
-        plt.xlabel("ground truth")
-        plt.xlabel("predict")
-        plt.title(f"r_{location_str}_{r:.3f}.png")
-        plt.savefig(f"deep_learning/result/r_{location_str}.png")
-        plt.close()
+        # plt.figure()
+        # r = np.corrcoef(t_inverse, y_inverse)[0][1]
+        # plt.plot(t_inverse, y_inverse, "o")
+        # plt.axis("square")
+        # plt.xlabel("ground truth")
+        # plt.ylabel("predict")
+        # plt.title(f"r_{location_str}_{r:.3f}.png")
+        # plt.savefig(f"deep_learning/result/r_{location_str}.png")
+        # plt.close()
 
 
 net = transformer_net.TransformerNet(
-    d_model=256, nhead=4, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
-).cuda()
-train_dataloader, val_dataloader, test_dataloader, min_max_scaler, location2id = get_dataloader(10, 4, "World")
+    d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
+).to(DEVICE)
+train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(10, 4, "World")
 early_stopping = EarlyStopping(20)
 
 train_loss_list = []
 val_loss_list = []
 train_mae_list = []
 val_mae_list = []
+epoch = 10000
 optimizer = optim.Adam(net.parameters(), lr=1e-5)
-pbar = tqdm(total=1000, position=0)
-desc = tqdm(total=1000, position=1, bar_format="{desc}", desc="")
-for epoch in range(1000):
-    train_loss, train_mae = train(net, optimizer, train_dataloader, min_max_scaler)
-    val_loss, val_mae = val_test(net, val_dataloader, min_max_scaler)
+pbar = tqdm(total=epoch, position=0)
+desc = tqdm(total=epoch, position=1, bar_format="{desc}", desc="")
+for epoch in range(epoch):
+    train_loss, train_mae = train(net, optimizer, train_dataloader, scaler)
+    val_loss, val_mae = val_test(net, val_dataloader, scaler)
     train_loss_list.append(train_loss)
     val_loss_list.append(val_loss)
     train_mae_list.append(train_mae)
@@ -151,10 +158,10 @@ pbar.clear()
 desc.clear()
 plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list)
 
-test_loss, test_mae = val_test(net, test_dataloader, min_max_scaler)
+test_loss, test_mae = val_test(net, test_dataloader, scaler)
 tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
 # print()
 mae_list = []
 # for i in range(47):
-mae_list.append(plot_predict(net, test_dataloader, location2id, min_max_scaler))
+mae_list.append(plot_predict(net, test_dataloader, location2id, scaler))
 # print(sum(mae_list) / len(mae_list))
