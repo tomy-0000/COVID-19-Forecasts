@@ -49,7 +49,7 @@ class EarlyStopping:
             return False
 
 
-def get_dataloader(X_seq, t_seq, mode="Japan"):
+def get_dataloader(X_seq, t_seq, use_val, mode):
     if mode == "Japan":
         df = pd.read_csv("data/raw/Japan.csv").drop("ALL", axis=1)
     elif mode == "World":
@@ -74,9 +74,12 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
     data = np.nan_to_num(df.values, 0.0)
     location2id = {i: j for j, i in enumerate(df.columns)}
 
-    train_data, val_data = train_test_split(data, train_size=0.6, shuffle=False)
-    val_data, test_data = train_test_split(val_data, train_size=0.5, shuffle=False)
+    if use_val:
+        train_data, val_data = train_test_split(data, train_size=0.6, shuffle=False)
+        val_data, test_data = train_test_split(val_data, train_size=0.5, shuffle=False)
     else:
+        train_data, test_data = train_test_split(data, train_size=0.8, shuffle=False)
+        val_data = test_data.copy()  # 下のコードの整合性のため
     scaler = StandardScaler()
     scaler.fit(train_data)
     train_data = scaler.transform(train_data)
@@ -113,12 +116,11 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
     location_num = len(np.unique(location))
     train_dataset = Dataset(train_X, train_t, train_location, location_num)
     val_dataset = Dataset(val_X, val_t, val_location, location_num)
-    train2_dataset = Dataset(val_X + train_X, val_t + train_t, val_location + train_location, location_num)
     test_dataset = Dataset(test_X, test_t, test_location, location_num)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=4096, shuffle=True)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=4096)
-    train2_dataloader = torch.utils.data.DataLoader(train2_dataset, batch_size=4096, shuffle=True)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=4096)
+    return train_dataloader, val_dataloader, test_dataloader, scaler, location2id
 
 
 def inverse_scaler(x, location, location_num, scaler):
