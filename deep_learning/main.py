@@ -110,7 +110,8 @@ def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, s
 
 def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
     # len(dataloader) == 1の時だけ
-    _, t, _ = dataloader.dataset[0]
+    X, t, _ = dataloader.dataset[0]
+    X_seq = len(X)
     t_seq = len(t)
     for location_str, location_id in tqdm(location2id.items(), leave=False):
         net.eval()
@@ -118,24 +119,26 @@ def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
         t_inverse = []
         cnt = 0
         with torch.no_grad():
-            for X, t, location in dataloader:
+            for i, (X, t, location) in enumerate(dataloader):
                 X = X[location == location_id]
                 t = t[location == location_id]
                 location = location[location == location_id]
+                location_num = dataloader.dataset.location_num
+                if i == 0:
+                    t_inverse += inverse_scaler(X[[0]], location[[0]], location_num, scaler).tolist()
                 X = X.to(DEVICE)
                 t = t.to(DEVICE)
                 y = net(X, t)
-                location_num = dataloader.dataset.location_num
                 y_inverse += inverse_scaler(y, location, location_num, scaler).tolist()
                 t_inverse += inverse_scaler(t, location, location_num, scaler).tolist()
                 cnt += len(y_inverse)
-        mae = abs(np.array(y_inverse) - np.array(t_inverse)).sum()
+        mae = abs(np.array(y_inverse) - np.array(t_inverse[X_seq:])).sum()
         mae /= cnt
         fig, ax = plt.subplots()
         for i in range(0, len(y_inverse), t_seq):
             if i > 0:
-                ax.plot(range(i - 1, i + 1), y_inverse[i - 1 : i + 1], color="C0", linestyle="--")
-            ax.plot(range(i, i + t_seq), y_inverse[i : i + t_seq], color="C0")
+                ax.plot(range(X_seq + i - 1, X_seq + i + 1), y_inverse[i - 1 : i + 1], color="C0", linestyle="--")
+            ax.plot(range(X_seq + i, X_seq + i + t_seq), y_inverse[i : i + t_seq], color="C0")
         ax.lines[0].set_label("predict")
         ax.plot(t_inverse, label="ground truth", color="C1")
         ax.legend()
