@@ -9,7 +9,7 @@ import torch.optim as optim
 from tqdm.auto import tqdm
 
 import transformer_net
-from utils import EarlyStopping, get_dataloader, DEVICE
+from utils import EarlyStopping, get_dataloader, DEVICE, inverse_scaler
 
 sns.set()
 torch.manual_seed(111)

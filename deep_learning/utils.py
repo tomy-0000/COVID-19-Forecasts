@@ -120,4 +120,13 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=4096)
     train2_dataloader = torch.utils.data.DataLoader(train2_dataset, batch_size=4096, shuffle=True)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=4096)
-    return train_dataloader, val_dataloader, train2_dataloader, test_dataloader, scaler, location2id
+
+
+def inverse_scaler(x, location, location_num, scaler):
+    x = x.detach().cpu().numpy()  # [N, T]
+    location = location.numpy().repeat(x.shape[-1])  # [N*T]
+    x = x.reshape(-1)  # [N*T]
+    placeholder = np.zeros([len(x), location_num])  # [N*T, location_num]
+    placeholder[range(len(placeholder)), location] = x
+    x_inverse = scaler.inverse_transform(placeholder)[range(len(placeholder)), location]  # [N*T]
+    return x_inverse
