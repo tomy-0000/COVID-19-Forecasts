@@ -63,10 +63,7 @@ def run(train_dataloader, total_epoch, patience, val_dataloader=None):
     val_loss_list = []
     val_mae_list = []
     early_stopping = EarlyStopping(patience)
-    if val_dataloader is None:
-        tqdm.write("[Train Only]")
-    else:
-        tqdm.write("[Train And Val]")
+    tqdm.write(f"[{mode}]")
     net = transformer_net.TransformerNet(
         d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
     ).to(DEVICE)
