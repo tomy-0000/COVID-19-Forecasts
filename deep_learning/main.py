@@ -166,7 +166,7 @@ if __name__ == "__main__":
     plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "train_and_val")
     test_loss, test_mae = val_test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
-    plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "")
+    plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "train_and_val")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_and_val")
 
     train_dataloader, _, test_dataloader, scaler, location2id = get_dataloader(args.X_seq, args.t_seq, False, args.mode)
@@ -176,6 +176,7 @@ if __name__ == "__main__":
     plot_history(train_loss_list, None, train_mae_list, None, "train_only")
     test_loss, test_mae = val_test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
+    plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "train_only")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_only")
 
     # 方法C: (訓練データ + 検証データ), テストデータ (EarlyStoppingにテストデータを使用)
@@ -185,6 +186,7 @@ if __name__ == "__main__":
     plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "leak")
     test_loss, test_mae = val_test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
+    plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "leak")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "leak")
 
 #       epoch | test loss | test mae
