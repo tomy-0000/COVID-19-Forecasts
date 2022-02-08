@@ -16,16 +16,6 @@ torch.manual_seed(111)
 torch.backends.cudnn.benchmark = False
 
 
-def inverse_scaler(x, location, location_num, scaler):
-    x = x.detach().cpu().numpy()  # [N, T]
-    location = location.numpy().repeat(x.shape[-1])  # [N*T]
-    x = x.reshape(-1)  # [N*T]
-    placeholder = np.zeros([len(x), location_num])  # [N*T, location_num]
-    placeholder[range(len(placeholder)), location] = x
-    x_inverse = scaler.inverse_transform(placeholder)[range(len(placeholder)), location]  # [N*T]
-    return x_inverse
-
-
 def train(net, optimizer, dataloader, scaler):
     net.train()
     loss = 0.0
