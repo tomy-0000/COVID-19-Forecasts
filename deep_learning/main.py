@@ -12,7 +12,7 @@ import transformer_net
 from utils import EarlyStopping, get_dataloader, DEVICE
 
 sns.set()
-torch.manual_seed(0)
+torch.manual_seed(111)
 torch.backends.cudnn.benchmark = False
 
 
