@@ -155,10 +155,11 @@ if __name__ == "__main__":
     parser.add_argument("--patience", type=int, default=20)
     args = parser.parse_args()
 
-    train_dataloader, val_dataloader, train2_dataloader, test_dataloader, scaler, location2id = get_dataloader(
-        args.X_seq, args.t_seq, args.mode
+    train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(
+        args.X_seq, args.t_seq, True, args.mode
     )
 
+    # 方法A: 訓練データ, 検証データ, テストデータ (EarlyStoppingに検証データを使用)
     epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
         train_dataloader, val_dataloader, 100000, args.patience, "Train And Val"
     )
@@ -168,10 +169,26 @@ if __name__ == "__main__":
     plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_and_val")
 
-    epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
-        train_dataloader, epoch, args.patience
-    )
-    plot_history(train_loss_list, train_mae_list, "train_only")
+    train_dataloader, _, test_dataloader, scaler, location2id = get_dataloader(args.X_seq, args.t_seq, False, args.mode)
+
+    # 方法B: (訓練データ + 検証データ), テストデータ (EarlyStoppingなし、epochは方法Aを使用)
+    _, train_loss_list, _, train_mae_list, _, net = run(train_dataloader, None, epoch, args.patience, "Train Only")
+    plot_history(train_loss_list, None, train_mae_list, None, "train_only")
     test_loss, test_mae = val_test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_only")
+
+    # 方法C: (訓練データ + 検証データ), テストデータ (EarlyStoppingにテストデータを使用)
+    _, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
+        train_dataloader, test_dataloader, 100000, args.patience, "Leak"
+    )
+    plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "leak")
+    test_loss, test_mae = val_test(net, test_dataloader, scaler)
+    tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
+    plot_predict(net, test_dataloader, location2id, scaler, args.mode, "leak")
+
+#       epoch | test loss | test mae
+# ------------------------------------
+# 方法A: 515   | 261.876   | 7004.342
+# 方法A: 494   | 126.688   | 5610.677
+# 方法C: 410  | 126.671   | 5569.648
