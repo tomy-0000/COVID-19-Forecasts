@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -76,8 +76,7 @@ def get_dataloader(X_seq, t_seq, mode="Japan"):
 
     train_data, val_data = train_test_split(data, train_size=0.6, shuffle=False)
     val_data, test_data = train_test_split(val_data, train_size=0.5, shuffle=False)
-
-    # scaler = MinMaxScaler()
+    else:
     scaler = StandardScaler()
     scaler.fit(train_data)
     train_data = scaler.transform(train_data)
