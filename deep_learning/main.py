@@ -57,7 +57,7 @@ def val_test(net, dataloader, scaler):
     return loss, mae
 
 
-def run(train_dataloader, total_epoch, patience, val_dataloader=None):
+def run(train_dataloader, val_dataloader, total_epoch, patience, mode):
     train_loss_list = []
     train_mae_list = []
     val_loss_list = []
@@ -78,19 +78,20 @@ def run(train_dataloader, total_epoch, patience, val_dataloader=None):
             val_loss, val_mae = val_test(net, val_dataloader, scaler)
             val_loss_list.append(val_loss)
             val_mae_list.append(val_mae)
-            if early_stopping(net, val_loss):
-                break
         pbar.update(1)
         if val_dataloader is not None:
             desc_str = f"Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Train MAE: {train_mae:.3f} | Val MAE: {val_mae:.3f} | Best Val Loss: {early_stopping.best_value:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
         else:
             desc_str = f"Train Loss: {train_loss:.3f} | Train MAE: {train_mae:.3f}"
         desc.set_description(desc_str)
+        if val_dataloader is not None:
+            if early_stopping(net, val_loss):
+                break
     epoch -= patience
     return epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net
 
 
-def plot_history(train_loss_list, train_mae_list, suffix, val_loss_list=None, val_mae_list=None):
+def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, suffix):
     plt.figure()
     plt.plot(train_loss_list, label="train")
     if val_loss_list is not None:
@@ -156,11 +157,9 @@ if __name__ == "__main__":
     )
 
     epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
-        train_dataloader, 100000, args.patience, val_dataloader=val_dataloader
+        train_dataloader, val_dataloader, 100000, args.patience, "Train And Val"
     )
-    plot_history(
-        train_loss_list, train_mae_list, "train_and_val", val_loss_list=val_loss_list, val_mae_list=val_mae_list
-    )
+    plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "train_and_val")
     test_loss, test_mae = val_test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
     plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "")
