@@ -8,8 +8,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tqdm.auto import tqdm
 
-import transformer_net
-from utils import EarlyStopping, get_dataloader, DEVICE, inverse_scaler
+import nets
+from utils import DEVICE, EarlyStopping, get_dataloader, inverse_scaler
 
 sns.set()
 torch.manual_seed(111)
@@ -64,7 +64,7 @@ def run(train_dataloader, val_dataloader, total_epoch, patience, mode):
     val_mae_list = []
     early_stopping = EarlyStopping(patience)
     tqdm.write(f"[{mode}]")
-    net = transformer_net.TransformerNet(
+    net = nets.TransformerNet(
         d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
     ).to(DEVICE)
     optimizer = optim.AdamW(net.parameters(), lr=1e-5)
