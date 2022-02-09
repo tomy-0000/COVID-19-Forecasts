@@ -20,11 +20,12 @@ def train(net, optimizer, dataloader, scaler):
     net.train()
     loss = 0.0
     mae = 0.0
-    for X, t, location in dataloader:
-        X = X.to(DEVICE)
+    for enc_X, dec_X, t, location in dataloader:
+        enc_X = enc_X.to(DEVICE)
+        dec_X = dec_X.to(DEVICE)
         t = t.to(DEVICE)
         optimizer.zero_grad()
-        y = net(X, t)
+        y = net(enc_X, dec_X)
         batch_loss = F.mse_loss(y, t) ** 0.5
         batch_loss.backward()
         optimizer.step()
@@ -43,10 +44,11 @@ def val_test(net, dataloader, scaler):
     loss = 0.0
     mae = 0.0
     with torch.no_grad():
-        for X, t, location in dataloader:
-            X = X.to(DEVICE)
+        for enc_X, dec_X, t, location in dataloader:
+            enc_X = enc_X.to(DEVICE)
+            dec_X = dec_X.to(DEVICE)
             t = t.to(DEVICE)
-            y = net(X, t)
+            y = net(enc_X, dec_X)
             loss += F.mse_loss(y, t, reduction="sum").detach().item()
             location_num = dataloader.dataset.location_num
             y_inverse = inverse_scaler(y, location, location_num, scaler)
@@ -110,7 +112,7 @@ def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, s
 
 def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
     # len(dataloader) == 1の時だけ
-    X, t, _ = dataloader.dataset[0]
+    X, _, t, _ = dataloader.dataset[0]
     X_seq = len(X)
     t_seq = len(t)
     for location_str, location_id in tqdm(location2id.items(), leave=False):
@@ -119,7 +121,7 @@ def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
         t_inverse = []
         cnt = 0
         with torch.no_grad():
-            for i, (X, t, location) in enumerate(dataloader):
+            for i, (X, _, t, location) in enumerate(dataloader):
                 X = X[location == location_id]
                 t = t[location == location_id]
                 location = location[location == location_id]

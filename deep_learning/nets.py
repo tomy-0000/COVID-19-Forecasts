@@ -40,14 +40,14 @@ class TransformerNet(nn.Module):
         )
         self.l3 = nn.Linear(d_model, 1)
 
-    def forward(self, x, t):
-        mask = nn.Transformer.generate_square_subsequent_mask(t.shape[-1]).cuda()
-        x = x.unsqueeze(-1)
-        x = self.l1(x)
-        x = self.positional_encoder(x)
-        t = t.unsqueeze(-1)
-        t = self.l2(t)
-        t = self.positional_encoder(t)
-        x = self.transformer(x, t, tgt_mask=mask)
+    def forward(self, enc_x, dec_x):
+        mask = nn.Transformer.generate_square_subsequent_mask(dec_x.shape[-1]).cuda()
+        enc_x = enc_x.unsqueeze(-1)
+        enc_x = self.l1(enc_x)
+        enc_x = self.positional_encoder(enc_x)
+        dec_x = dec_x.unsqueeze(-1)
+        dec_x = self.l2(dec_x)
+        dec_x = self.positional_encoder(dec_x)
+        x = self.transformer(enc_x, dec_x, tgt_mask=mask)
         x = self.l3(x).squeeze(-1)
         return x

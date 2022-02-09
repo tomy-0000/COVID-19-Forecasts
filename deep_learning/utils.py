@@ -10,8 +10,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, x, t, location, location_num):
-        self.x = np.array(list(reversed(x)))
+    def __init__(self, enc_X, dec_X, t, location, location_num):
+        self.enc_X = np.array(list(reversed(enc_X)))
+        self.dec_X = np.array(list(reversed(dec_X)))
         self.t = np.array(list(reversed(t)))
         self.location = np.array(list(reversed(location)))
         self.location_num = location_num
@@ -19,13 +20,14 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         return (
-            torch.from_numpy(self.x[idx]).float(),
+            torch.from_numpy(self.enc_X[idx]).float(),
+            torch.from_numpy(self.dec_X[idx]).float(),
             torch.from_numpy(self.t[idx]).float(),
             torch.tensor(self.location[idx]).long(),
         )
 
     def __len__(self):
-        return len(self.x)
+        return len(self.enc_X)
 
 
 class EarlyStopping:
@@ -90,33 +92,37 @@ def get_dataloader(X_seq, t_seq, use_val, mode):
     val_data = val_data.T
     test_data = test_data.T
 
-    train_X = []
+    train_enc_X = []
+    train_dec_X = []
     train_t = []
     train_location = []
-    val_X = []
+    val_enc_X = []
+    val_dec_X = []
     val_t = []
     val_location = []
-    test_X = []
+    test_enc_X = []
+    test_dec_X = []
     test_t = []
     test_location = []
-    for data, X, t, location in [
-        [train_data, train_X, train_t, train_location],
-        [val_data, val_X, val_t, val_location],
-        [test_data, test_X, test_t, test_location],
+    for data, enc_X, dec_X, t, location in [
+        [train_data, train_enc_X, train_dec_X, train_t, train_location],
+        [val_data, val_enc_X, val_dec_X, val_t, val_location],
+        [test_data, test_enc_X, test_dec_X, test_t, test_location],
     ]:
         now_idx = data.shape[1]
         while True:
             if now_idx - X_seq - t_seq < 0:
                 break
-            X += data[:, now_idx - X_seq - t_seq : now_idx - t_seq].tolist()
+            enc_X += data[:, now_idx - X_seq - t_seq : now_idx - t_seq].tolist()
+            dec_X += data[:, now_idx - t_seq - 1 : now_idx - 1].tolist()
             t += data[:, now_idx - t_seq : now_idx].tolist()
             now_idx -= t_seq
             location += list(range(data.shape[0]))
 
     location_num = len(np.unique(location))
-    train_dataset = Dataset(train_X, train_t, train_location, location_num)
-    val_dataset = Dataset(val_X, val_t, val_location, location_num)
-    test_dataset = Dataset(test_X, test_t, test_location, location_num)
+    train_dataset = Dataset(train_enc_X, train_dec_X, train_t, train_location, location_num)
+    val_dataset = Dataset(val_enc_X, val_dec_X, val_t, val_location, location_num)
+    test_dataset = Dataset(test_enc_X, test_dec_X, test_t, test_location, location_num)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=30000, shuffle=True)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=30000)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=30000)
