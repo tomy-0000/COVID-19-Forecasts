@@ -95,6 +95,7 @@ def run(train_dataloader, val_dataloader, total_epoch, patience, mode, batch_siz
     #     dropout=0.1,
     #     batch_size=batch_size,
     # ).to(DEVICE)
+    net = nets.LSTMNet(d_model=512).to(DEVICE)
     optimizer = optim.AdamW(net.parameters(), lr=1e-5)
     pbar = tqdm(total=total_epoch, position=0)
     desc = tqdm(total=total_epoch, position=1, bar_format="{desc}", desc="")
