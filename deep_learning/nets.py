@@ -79,12 +79,12 @@ class TransformerNet(nn.Module):
 
 
 class LSTMNet(nn.Module):
-    def __init__(self, d_model=512):
+    def __init__(self, d_model=512, num_layers=1):
         super().__init__()
         self.l1 = nn.Linear(1, d_model)
         self.l2 = nn.Linear(1, d_model)
-        self.enc_lstm = nn.LSTM(d_model, d_model, batch_first=True)
-        self.dec_lstm = nn.LSTM(d_model, d_model, batch_first=True)
+        self.enc_lstm = nn.LSTM(d_model, d_model, num_layers, batch_first=True)
+        self.dec_lstm = nn.LSTM(d_model, d_model, num_layers, batch_first=True)
         self.l3 = nn.Linear(d_model, 1)
 
     def forward(self, enc_x, dec_x):
