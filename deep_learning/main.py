@@ -34,6 +34,7 @@ def train(net, optimizer, dataloader, scaler):
         y_inverse = inverse_scaler(y, location, location_num, scaler)
         t_inverse = inverse_scaler(t, location, location_num, scaler)
         mae += abs(y_inverse - t_inverse).sum()
+        # mae += F.l1_loss(y, t, reduction="sum").detach().item()
     loss = (loss / dataloader.dataset.size) ** 0.5
     mae = mae / dataloader.dataset.size
     return loss, mae
@@ -54,6 +55,7 @@ def val(net, dataloader, scaler):
             y_inverse = inverse_scaler(y, location, location_num, scaler)
             t_inverse = inverse_scaler(t, location, location_num, scaler)
             mae += abs(y_inverse - t_inverse).sum()
+            # mae += F.l1_loss(y, t, reduction="sum").detach().item()
     loss = (loss / dataloader.dataset.size) ** 0.5
     mae = mae / dataloader.dataset.size
     return loss, mae
@@ -74,6 +76,7 @@ def test(net, dataloader, scaler):
             y_inverse = inverse_scaler(y, location, location_num, scaler)
             t_inverse = inverse_scaler(t, location, location_num, scaler)
             mae += abs(y_inverse - t_inverse).sum()
+            # mae += F.l1_loss(y, t, reduction="sum").detach().item()
     loss = (loss / dataloader.dataset.size) ** 0.5
     mae = mae / dataloader.dataset.size
     return loss, mae
@@ -169,11 +172,13 @@ def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
                     y = net(enc_X, dec_X)
                 else:
                     y = net.test(enc_X, dec_X, t.shape[-1])
-                y_inverse += inverse_scaler(y, location, location_num, scaler).tolist()
-                t_inverse += inverse_scaler(t, location, location_num, scaler).tolist()
+                # y_inverse += inverse_scaler(y, location, location_num, scaler).tolist()
+                # t_inverse += inverse_scaler(t, location, location_num, scaler).tolist()
                 cnt += len(y_inverse)
-        mae = abs(np.array(y_inverse) - np.array(t_inverse[X_seq:])).sum()
+        # mae = abs(np.array(y_inverse) - np.array(t_inverse[X_seq:])).sum()
+        mae = F.l1_loss(y, t, reduction="sum").detach().item()
         mae /= cnt
+        tqdm.write(f"{location_str}: {mae:.3f}")
         fig, ax = plt.subplots()
         for i in range(0, len(y_inverse), t_seq):
             if i > 0:
