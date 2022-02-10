@@ -51,7 +51,7 @@ class EarlyStopping:
             return False
 
 
-def get_dataloader(X_seq, t_seq, use_val, mode):
+def get_dataloader(X_seq, t_seq, use_val, mode, batch_size):
     if mode == "Japan":
         df = pd.read_csv("data/raw/Japan.csv").drop("ALL", axis=1)
     elif mode == "World":
@@ -73,6 +73,7 @@ def get_dataloader(X_seq, t_seq, use_val, mode):
         df = df[["Date", "Tokyo"]]
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.resample("W", on="Date").mean()
+    # df = df.drop("Date", axis=1)
     data = np.nan_to_num(df.values, 0.0)
     location2id = {i: j for j, i in enumerate(df.columns)}
 
@@ -128,9 +129,9 @@ def get_dataloader(X_seq, t_seq, use_val, mode):
     train_dataset = Dataset(train_enc_X, train_dec_X, train_t, train_location, location_num)
     val_dataset = Dataset(val_enc_X, val_dec_X, val_t, val_location, location_num)
     test_dataset = Dataset(test_enc_X, test_dec_X, test_t, test_location, location_num)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=30000, shuffle=True)
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=30000)
-    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=30000)
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
     return train_dataloader, val_dataloader, test_dataloader, scaler, location2id
 
 
