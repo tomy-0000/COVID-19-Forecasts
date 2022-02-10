@@ -39,7 +39,7 @@ def train(net, optimizer, dataloader, scaler):
     return loss, mae
 
 
-def val_test(net, dataloader, scaler):
+def val(net, dataloader, scaler):
     net.eval()
     loss = 0.0
     mae = 0.0
@@ -59,6 +59,26 @@ def val_test(net, dataloader, scaler):
     return loss, mae
 
 
+def test(net, dataloader, scaler):
+    net.eval()
+    loss = 0.0
+    mae = 0.0
+    with torch.no_grad():
+        for enc_X, dec_X, t, location in dataloader:
+            enc_X = enc_X.to(DEVICE)
+            dec_X = dec_X.to(DEVICE)
+            t = t.to(DEVICE)
+            y = net.test(enc_X, dec_X, t.shape[-1])
+            loss += F.mse_loss(y, t, reduction="sum").detach().item()
+            location_num = dataloader.dataset.location_num
+            y_inverse = inverse_scaler(y, location, location_num, scaler)
+            t_inverse = inverse_scaler(t, location, location_num, scaler)
+            mae += abs(y_inverse - t_inverse).sum()
+    loss = (loss / dataloader.dataset.size) ** 0.5
+    mae = mae / dataloader.dataset.size
+    return loss, mae
+
+
 def run(train_dataloader, val_dataloader, total_epoch, patience, mode):
     train_loss_list = []
     train_mae_list = []
@@ -67,7 +87,7 @@ def run(train_dataloader, val_dataloader, total_epoch, patience, mode):
     early_stopping = EarlyStopping(patience)
     tqdm.write(f"[{mode}]")
     net = nets.TransformerNet(
-        d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.2
+        d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.1
     ).to(DEVICE)
     optimizer = optim.AdamW(net.parameters(), lr=1e-5)
     pbar = tqdm(total=total_epoch, position=0)
@@ -76,8 +96,12 @@ def run(train_dataloader, val_dataloader, total_epoch, patience, mode):
         train_loss, train_mae = train(net, optimizer, train_dataloader, scaler)
         train_loss_list.append(train_loss)
         train_mae_list.append(train_mae)
-        if val_dataloader is not None:
-            val_loss, val_mae = val_test(net, val_dataloader, scaler)
+        if mode == "Train And Val":
+            val_loss, val_mae = val(net, val_dataloader, scaler)
+            val_loss_list.append(val_loss)
+            val_mae_list.append(val_mae)
+        if mode == "Leak":
+            val_loss, val_mae = test(net, val_dataloader, scaler)
             val_loss_list.append(val_loss)
             val_mae_list.append(val_mae)
         pbar.update(1)
@@ -121,16 +145,20 @@ def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
         t_inverse = []
         cnt = 0
         with torch.no_grad():
-            for i, (X, _, t, location) in enumerate(dataloader):
-                X = X[location == location_id]
+            for i, (enc_X, dec_X, t, location) in enumerate(dataloader):
+                enc_X = enc_X[location == location_id]
+                dec_X = dec_X[location == location_id]
                 t = t[location == location_id]
                 location = location[location == location_id]
                 location_num = dataloader.dataset.location_num
                 if i == 0:
-                    t_inverse += inverse_scaler(X[[0]], location[[0]], location_num, scaler).tolist()
-                X = X.to(DEVICE)
-                t = t.to(DEVICE)
-                y = net(X, t)
+                    t_inverse += inverse_scaler(enc_X[[0]], location[[0]], location_num, scaler).tolist()
+                enc_X = enc_X.to(DEVICE)
+                dec_X = dec_X.to(DEVICE)
+                if "/train" in mode:
+                    y = net(enc_X, dec_X)
+                else:
+                    y = net.test(enc_X, dec_X, t.shape[-1])
                 y_inverse += inverse_scaler(y, location, location_num, scaler).tolist()
                 t_inverse += inverse_scaler(t, location, location_num, scaler).tolist()
                 cnt += len(y_inverse)
@@ -166,7 +194,7 @@ if __name__ == "__main__":
         train_dataloader, val_dataloader, 100000, args.patience, "Train And Val"
     )
     plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "train_and_val")
-    test_loss, test_mae = val_test(net, test_dataloader, scaler)
+    test_loss, test_mae = test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
     plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "train_and_val")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_and_val")
@@ -176,7 +204,7 @@ if __name__ == "__main__":
     # 方法B: (訓練データ + 検証データ), テストデータ (EarlyStoppingなし、epochは方法Aを使用)
     _, train_loss_list, _, train_mae_list, _, net = run(train_dataloader, None, epoch, args.patience, "Train Only")
     plot_history(train_loss_list, None, train_mae_list, None, "train_only")
-    test_loss, test_mae = val_test(net, test_dataloader, scaler)
+    test_loss, test_mae = test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
     plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "train_only")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_only")
@@ -186,7 +214,7 @@ if __name__ == "__main__":
         train_dataloader, test_dataloader, 100000, args.patience, "Leak"
     )
     plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "leak")
-    test_loss, test_mae = val_test(net, test_dataloader, scaler)
+    test_loss, test_mae = test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
     plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "leak")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "leak")

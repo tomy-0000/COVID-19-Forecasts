@@ -104,17 +104,22 @@ def get_dataloader(X_seq, t_seq, use_val, mode):
     test_dec_X = []
     test_t = []
     test_location = []
-    for data, enc_X, dec_X, t, location in [
-        [train_data, train_enc_X, train_dec_X, train_t, train_location],
-        [val_data, val_enc_X, val_dec_X, val_t, val_location],
-        [test_data, test_enc_X, test_dec_X, test_t, test_location],
-    ]:
+    for i, (data, enc_X, dec_X, t, location) in enumerate(
+        [
+            [train_data, train_enc_X, train_dec_X, train_t, train_location],
+            [val_data, val_enc_X, val_dec_X, val_t, val_location],
+            [test_data, test_enc_X, test_dec_X, test_t, test_location],
+        ]
+    ):
         now_idx = data.shape[1]
         while True:
             if now_idx - X_seq - t_seq < 0:
                 break
             enc_X += data[:, now_idx - X_seq - t_seq : now_idx - t_seq].tolist()
-            dec_X += data[:, now_idx - t_seq - 1 : now_idx - 1].tolist()
+            if i == 2:
+                dec_X += data[:, now_idx - t_seq - 1 : now_idx - t_seq].tolist()
+            else:
+                dec_X += data[:, now_idx - t_seq - 1 : now_idx - 1].tolist()
             t += data[:, now_idx - t_seq : now_idx].tolist()
             now_idx -= t_seq
             location += list(range(data.shape[0]))
