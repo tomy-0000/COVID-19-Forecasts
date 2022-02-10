@@ -79,16 +79,22 @@ def test(net, dataloader, scaler):
     return loss, mae
 
 
-def run(train_dataloader, val_dataloader, total_epoch, patience, mode):
+def run(train_dataloader, val_dataloader, total_epoch, patience, mode, batch_size):
     train_loss_list = []
     train_mae_list = []
     val_loss_list = []
     val_mae_list = []
     early_stopping = EarlyStopping(patience)
     tqdm.write(f"[{mode}]")
-    net = nets.TransformerNet(
-        d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.1
-    ).to(DEVICE)
+    # net = nets.TransformerNet(
+    #     d_model=512,
+    #     nhead=8,
+    #     num_encoder_layers=6,
+    #     num_decoder_layers=6,
+    #     dim_feedforward=2048,
+    #     dropout=0.1,
+    #     batch_size=batch_size,
+    # ).to(DEVICE)
     optimizer = optim.AdamW(net.parameters(), lr=1e-5)
     pbar = tqdm(total=total_epoch, position=0)
     desc = tqdm(total=total_epoch, position=1, bar_format="{desc}", desc="")
