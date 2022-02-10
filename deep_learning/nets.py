@@ -60,12 +60,12 @@ class TransformerNet(nn.Module):
             enc_x = enc_x.unsqueeze(-1)
             enc_x = self.l1(enc_x)
             enc_x = self.positional_encoder(enc_x)
-            enc_output = encoder(enc_x)
+            enc_y = encoder(enc_x)
             for i in range(1, t_seq + 1):
                 dec_x2 = dec_x.unsqueeze(-1)  # [N, i, 1]
                 dec_x2 = self.l2(dec_x2)  # [N, i, d_model]
                 dec_x2 = self.positional_encoder(dec_x2)  # [N, i, d_model]
-                y = decoder(dec_x2, enc_output)  # [N, i, d_model]
+                y = decoder(dec_x2, enc_y)  # [N, i, d_model]
                 y = self.l3(y).squeeze(-1)  # [N, 1]
                 dec_x = torch.cat([dec_x, y[:, [-1]]], dim=-1)  # [N, i + 1]
         return dec_x[:, 1:]
