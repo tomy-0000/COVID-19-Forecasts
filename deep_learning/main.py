@@ -142,7 +142,6 @@ def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, s
 
 
 def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
-    # len(dataloader) == 1の時だけ
     X, _, t, _ = dataloader.dataset[0]
     X_seq = len(X)
     t_seq = len(t)
@@ -151,15 +150,19 @@ def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
         y_inverse = []
         t_inverse = []
         cnt = 0
+        is_first = True
         with torch.no_grad():
-            for i, (enc_X, dec_X, t, location) in enumerate(dataloader):
+            for enc_X, dec_X, t, location in dataloader:
                 enc_X = enc_X[location == location_id]
                 dec_X = dec_X[location == location_id]
                 t = t[location == location_id]
                 location = location[location == location_id]
                 location_num = dataloader.dataset.location_num
-                if i == 0:
+                if len(t) == 0:
+                    continue
+                if is_first:
                     t_inverse += inverse_scaler(enc_X[[0]], location[[0]], location_num, scaler).tolist()
+                    is_first = False
                 enc_X = enc_X.to(DEVICE)
                 dec_X = dec_X.to(DEVICE)
                 if "/train" in mode:
@@ -190,15 +193,16 @@ if __name__ == "__main__":
     parser.add_argument("--X_seq", type=int, default=10)
     parser.add_argument("--t_seq", type=int, default=4)
     parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--batch_size", type=int, default=8192)
     args = parser.parse_args()
 
     train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(
-        args.X_seq, args.t_seq, True, args.mode
+        args.X_seq, args.t_seq, True, args.mode, args.batch_size
     )
 
     # 方法A: 訓練データ, 検証データ, テストデータ (EarlyStoppingに検証データを使用)
     epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
-        train_dataloader, val_dataloader, 100000, args.patience, "Train And Val"
+        train_dataloader, val_dataloader, 100000, args.patience, "Train And Val", args.batch_size
     )
     plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "train_and_val")
     test_loss, test_mae = test(net, test_dataloader, scaler)
@@ -206,10 +210,14 @@ if __name__ == "__main__":
     plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "train_and_val")
     plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_and_val")
 
-    train_dataloader, _, test_dataloader, scaler, location2id = get_dataloader(args.X_seq, args.t_seq, False, args.mode)
+    train_dataloader, _, test_dataloader, scaler, location2id = get_dataloader(
+        args.X_seq, args.t_seq, False, args.mode, args.batch_size
+    )
 
     # 方法B: (訓練データ + 検証データ), テストデータ (EarlyStoppingなし、epochは方法Aを使用)
-    _, train_loss_list, _, train_mae_list, _, net = run(train_dataloader, None, epoch, args.patience, "Train Only")
+    _, train_loss_list, _, train_mae_list, _, net = run(
+        train_dataloader, None, epoch, args.patience, "Train Only", args.batch_size
+    )
     plot_history(train_loss_list, None, train_mae_list, None, "train_only")
     test_loss, test_mae = test(net, test_dataloader, scaler)
     tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
@@ -218,7 +226,7 @@ if __name__ == "__main__":
 
     # 方法C: (訓練データ + 検証データ), テストデータ (EarlyStoppingにテストデータを使用)
     _, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
-        train_dataloader, test_dataloader, 100000, args.patience, "Leak"
+        train_dataloader, test_dataloader, 100000, args.patience, "Leak", args.batch_size
     )
     plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "leak")
     test_loss, test_mae = test(net, test_dataloader, scaler)
