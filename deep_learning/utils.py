@@ -34,14 +34,18 @@ class EarlyStopping:
     def __init__(self, patience):
         self.patience = patience
         self.counter = 0
-        self.best_value = 1e10
+        self.best_value1 = 1e10
+        self.best_value2 = 1e10
         self.early_stop = False
         self.state_dict = None
 
-    def __call__(self, net, value):
-        if value <= self.best_value:
-            self.best_value = value
-            self.state_dict = copy.deepcopy(net.state_dict())
+    def __call__(self, net, value1, value2):
+        if value1 <= self.best_value1 or value2 <= self.best_value2:
+            if value1 <= self.best_value1:
+                self.best_value1 = value1
+            if value2 <= self.best_value2:
+                self.best_value2 = value2
+                self.state_dict = copy.deepcopy(net.state_dict())
             self.counter = 0
         else:
             self.counter += 1
