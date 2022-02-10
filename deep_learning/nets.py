@@ -23,12 +23,19 @@ class PositionalEncoding(nn.Module):
 
 class TransformerNet(nn.Module):
     def __init__(
-        self, d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=2048, dropout=0.1
+        self,
+        d_model=512,
+        nhead=8,
+        num_encoder_layers=6,
+        num_decoder_layers=6,
+        dim_feedforward=2048,
+        dropout=0.1,
+        batch_size=512,
     ):
         super().__init__()
         self.l1 = nn.Linear(1, d_model)
         self.l2 = nn.Linear(1, d_model)
-        self.positional_encoder = PositionalEncoding(d_model)
+        self.positional_encoder = PositionalEncoding(d_model, max_len=batch_size)
         self.transformer = nn.Transformer(
             d_model,
             nhead,
