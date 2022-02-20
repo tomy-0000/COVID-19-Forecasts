@@ -18,7 +18,7 @@ torch.manual_seed(555)
 torch.backends.cudnn.benchmark = False
 
 
-def train(net, optimizer, dataloader, scaler, transform):
+def train(net, optimizer, dataloader, scaler):
     net.train()
     rmse = 0.0
     mae = 0.0
@@ -31,6 +31,7 @@ def train(net, optimizer, dataloader, scaler, transform):
         batch_loss = F.mse_loss(y, t) ** 0.5
         batch_loss.backward()
         optimizer.step()
+        if scaler is None:
             rmse += ((y - t) ** 2).sum().detach().item()
             mae += F.l1_loss(y, t, reduction="sum").detach().item()
         else:
@@ -54,6 +55,7 @@ def val(net, dataloader, scaler, transform):
             dec_X = dec_X.to(DEVICE)
             t = t.to(DEVICE)
             y = net(enc_X, dec_X)
+            if scaler is None:
                 rmse += ((y - t) ** 2).sum().item()
                 mae += F.l1_loss(y, t, reduction="sum").detach().item()
             else:
@@ -216,115 +218,14 @@ if __name__ == "__main__":
     parser.add_argument("--total_epoch", type=int, default=100000)
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--use_inverse", action="store_true")
     args = parser.parse_args()
 
     train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(
         args.X_seq, args.t_seq, True, args.mode, args.batch_size
     )
-
-    # 方法A: 訓練データ, 検証データ, テストデータ (EarlyStoppingに検証データを使用)
-    # epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
-    #     train_dataloader, val_dataloader, 100000, args.patience, "Train And Val", args.batch_size, None
-    # )
-    # plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "train_and_val")
-    # test_loss, test_mae = test(net, test_dataloader, scaler)
-    # tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
-    # plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "train_and_val")
-    # plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_and_val")
-
-    # train_dataloader, _, test_dataloader, scaler, location2id = get_dataloader(
-    #     args.X_seq, args.t_seq, False, args.mode, args.batch_size
-    # )
-
-    # 方法B: (訓練データ + 検証データ), テストデータ (EarlyStoppingなし、epochは方法Aを使用)
-    # _, train_loss_list, _, train_mae_list, _, net = run(
-    #     train_dataloader, None, epoch, args.patience, "Train Only", args.batch_size, None
-    # )
-    # plot_history(train_loss_list, None, train_mae_list, None, "train_only")
-    # test_loss, test_mae = test(net, test_dataloader, scaler)
-    # tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
-    # plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "train_only")
-    # plot_predict(net, test_dataloader, location2id, scaler, args.mode, "train_only")
-
-    # 方法C: (訓練データ + 検証データ), テストデータ (EarlyStoppingにテストデータを使用)
-    # _, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
-    #     train_dataloader, test_dataloader, 100000, args.patience, "Leak", args.batch_size, None
-    # )
-    # plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, "leak")
-    # test_loss, test_mae = test(net, test_dataloader, scaler)
-    # tqdm.write(f"Test Loss: {test_loss:.3f} | Test mae {test_mae:.3f}")
-    # plot_predict(net, train_dataloader, location2id, scaler, args.mode + "/train", "leak")
-    # plot_predict(net, test_dataloader, location2id, scaler, args.mode, "leak")
-
-    def wrapper(net_name, transform, mode):
-        def objective(trial):
-            torch.manual_seed(555)
-
-            total_epoch = 100000
-            patience = 50
-            early_stopping = EarlyStopping(patience)
-            batch_size = 8192
-            if net_name == "transformer":
-                num_encoder_layers = trial.suggest_int("num_encoder_layers", 1, 6)
-                num_decoder_layers = trial.suggest_int("num_decoder_layers", 1, 6)
-                dim_feedforward = trial.suggest_int("dim_feedforward", 1, 2048)
-                dropout = trial.suggest_float("dropout", 0.0, 0.7)
-                d_model = trial.suggest_int("d_model", 1, 128)
-                n_head = trial.suggest_int("n_head", 1, 3)
-                net = nets.TransformerNet(
-                    d_model=8 * d_model,
-                    nhead=2 ** n_head,
-                    num_encoder_layers=num_encoder_layers,
-                    num_decoder_layers=num_decoder_layers,
-                    dim_feedforward=dim_feedforward,
-                    dropout=dropout,
-                    batch_size=batch_size,
-                ).to(DEVICE)
-            elif net_name == "lstm":
-                d_model = trial.suggest_int("d_model", 1, 1024)
-                num_layers = trial.suggest_int("num_layers", 1, 5)
-                net = nets.LSTMNet(d_model=d_model, num_layers=num_layers).to(DEVICE)
-            optimizer = optim.AdamW(net.parameters(), lr=1e-5)
-            pbar = tqdm(total=total_epoch, position=0)
-            desc = tqdm(total=total_epoch, position=1, bar_format="{desc}", desc="")
-            for epoch in range(total_epoch):
-                train_loss, train_mae = train(net, optimizer, train_dataloader, scaler, transform)
-                if mode == "train_and_val":
-                    val_loss, val_mae = test(net, val_dataloader, scaler, transform)
-                else:
-                    val_loss, val_mae = test(net, test_dataloader, scaler, transform)
-                pbar.update(1)
-                desc_str = f"Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Train MAE: {train_mae:.3f} | Val MAE: {val_mae:.3f} | Best Val Loss: {early_stopping.best_value2:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
-                desc.set_description(desc_str)
-                if early_stopping(net, val_loss, val_mae):
-                    net.load_state_dict(early_stopping.state_dict)
-                    break
-            val_loss, val_mae = test(net, test_dataloader, scaler, transform)
-            return val_mae
-
-        return objective
-
-    for mode in ["train_and_val", "leak"]:
-        for transform in ["scaled", "inversed"]:
-            for net_name in ["transformer", "lstm"]:
-                study = optuna.create_study()
-                study.optimize(wrapper(net_name, transform, mode), n_trials=1, catch=(RuntimeError,))
-                with open(f"deep_learning/{net_name}-{transform}-{mode}.json", "w") as f:
-                    out = study.best_params
-                    out["best_value"] = study.best_value
-                    json.dump(out, f, indent=2)
-# transformer, inversed, leak
-# 17044.92170030608
-# {
-#     "num_encoder_layers": 6,
-#     "num_decoder_layers": 1,
-#     "dim_feedforward": 899,
-#     "dropout": 0.6629508394340399,
-#     "d_model": 43,  # 8*43
-#     "n_head": 2,  # 2**2
-# }
-
-# transformer, scaled, train and val
+    if not args.use_inverse:
+        scaler = None
 
     train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
         train_dataloader=train_dataloader,
