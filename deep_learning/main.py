@@ -104,18 +104,19 @@ def run(
     early_stopping = EarlyStopping(patience)
     tqdm.write(f"[{mode}]")
     if net_name == "transformer":
+        # optuna
         net = nets.TransformerNet(
-            d_model=256,
-            nhead=8,
-            num_encoder_layers=6,
-            num_decoder_layers=6,
+            d_model=84,
+            nhead=1,
+            num_encoder_layers=5,
+            num_decoder_layers=1,
             dim_feedforward=2048,
-            dropout=0.6,
+            dropout=0.6996650500967093,
             batch_size=batch_size,
         ).to(DEVICE)
-        # net = nets.TransformerNet(batch_size=batch_size, **params_list).to(DEVICE)
     elif net_name == "lstm":
-        net = nets.LSTMNet(d_model=512, num_layers=1).to(DEVICE)
+        # optuna
+        net = nets.LSTMNet(d_model=459, num_layers=5, dropout=0.6722579147817102, bidirectional=True).to(DEVICE)
     optimizer = optim.AdamW(net.parameters(), lr=1e-5)
     pbar = tqdm(total=total_epoch, position=0)
     desc = tqdm(total=total_epoch, position=1, bar_format="{desc}", desc="")
