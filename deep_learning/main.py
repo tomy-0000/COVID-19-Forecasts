@@ -132,10 +132,7 @@ def run(
             val_loss_list.append(val_loss)
             val_mae_list.append(val_mae)
         pbar.update(1)
-        if val_dataloader is not None:
-            desc_str = f"Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Train MAE: {train_mae:.3f} | Val MAE: {val_mae:.3f} | Best Val Loss: {early_stopping.best_value2:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
-        else:
-            desc_str = f"Train Loss: {train_loss:.3f} | Train MAE: {train_mae:.3f}"
+        desc_str = f"Train RMSE: {train_loss:.3f} | Val RMSE: {val_loss:.3f} | Train MAE: {train_mae:.3f} | Val MAE: {val_mae:.3f} | Best Val RMSE: {early_stopping.best_value:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
         desc.set_description(desc_str)
         if val_dataloader is not None:
             if early_stopping(net, val_loss, val_mae):
