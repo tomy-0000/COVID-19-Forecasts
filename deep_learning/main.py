@@ -223,7 +223,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(
-        args.X_seq, args.t_seq, True, args.mode, args.batch_size
+        X_seq=args.X_seq, t_seq=args.t_seq, use_val=True, mode=args.mode, batch_size=args.batch_size
     )
     if not args.use_inverse:
         scaler = None
