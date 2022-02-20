@@ -20,7 +20,7 @@ torch.backends.cudnn.benchmark = False
 
 def train(net, optimizer, dataloader, scaler, transform):
     net.train()
-    loss = 0.0
+    rmse = 0.0
     mae = 0.0
     for enc_X, dec_X, t, location in dataloader:
         enc_X = enc_X.to(DEVICE)
