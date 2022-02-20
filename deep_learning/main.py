@@ -1,9 +1,8 @@
 import argparse
-import json
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import optuna
 import seaborn as sns
 import torch
 import torch.nn.functional as F
@@ -45,25 +44,34 @@ def train(net, optimizer, dataloader, scaler):
     return rmse, mae
 
 
-def val(net, dataloader, scaler, transform):
+def val_test(net, dataloader, scaler, is_test):
     net.eval()
     rmse = 0.0
     mae = 0.0
+    y_all = []
+    t_all = []
     with torch.no_grad():
         for enc_X, dec_X, t, location in dataloader:
             enc_X = enc_X.to(DEVICE)
             dec_X = dec_X.to(DEVICE)
             t = t.to(DEVICE)
-            y = net(enc_X, dec_X)
+            if is_test:
+                y = net.test(enc_X, dec_X, t.shape[-1])
+            else:
+                y = net(enc_X, dec_X)
             if scaler is None:
                 rmse += ((y - t) ** 2).sum().item()
                 mae += F.l1_loss(y, t, reduction="sum").detach().item()
+                y_all += y.cpu().numpy().reshape(-1).tolist()
+                t_all += t.cpu().numpy().reshape(-1).tolist()
             else:
                 location_num = dataloader.dataset.location_num
                 y_inverse = inverse_scaler(y, location, location_num, scaler)
                 t_inverse = inverse_scaler(t, location, location_num, scaler)
                 rmse += ((y_inverse - t_inverse) ** 2).sum()
                 mae += abs(y_inverse - t_inverse).sum()
+                y_all += y_inverse.tolist()
+                t_all += t_inverse.tolist()
     rmse = (rmse / dataloader.dataset.size) ** 0.5
     mae = mae / dataloader.dataset.size
     if is_test:
@@ -79,7 +87,6 @@ def run(train_dataloader, val_dataloader, total_epoch, patience, batch_size, net
     val_loss_list = []
     val_mae_list = []
     early_stopping = EarlyStopping(patience)
-    tqdm.write(f"[{mode}]")
     if net_name == "transformer":
         # optuna
         net = nets.TransformerNet(
