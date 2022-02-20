@@ -86,17 +86,7 @@ def test(net, dataloader, scaler, transform):
     return rmse, mae, corrcoef
 
 
-def run(
-    train_dataloader,
-    val_dataloader,
-    total_epoch,
-    patience,
-    mode,
-    batch_size,
-    net_name="transformer",
-):
-    torch.manual_seed(555)
-
+def run(train_dataloader, val_dataloader, total_epoch, patience, batch_size, net_name, scaler):
     train_loss_list = []
     train_mae_list = []
     val_loss_list = []
