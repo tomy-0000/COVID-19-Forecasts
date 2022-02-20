@@ -325,17 +325,21 @@ if __name__ == "__main__":
 
 # transformer, scaled, train and val
 
-# transformer, scaled, leak
-# 37.75982306985294
-# {
-#     "num_encoder_layers": 3,
-#     "num_decoder_layers": 1,
-#     "dim_feedforward": 947,
-#     "dropout": 0.4755858483487231,
-#     "d_model": 123,  # 8*123
-#     "n_head": 3,  # 2**3
-# }
+    train_loss_list, val_loss_list, train_mae_list, val_mae_list, net = run(
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
+        total_epoch=args.total_epoch,
+        patience=args.patience,
+        batch_size=args.batch_size,
+        net_name=args.net,
+        scaler=scaler,
+    )
+    plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list)
 
-# lstm, scaled, train and val
+    train_loss, train_mae, corrcoef = val_test(net, train_dataloader, scaler, is_test=True)
+    tqdm.write(f"Train RMSE: {train_loss:.3f} | Train MAE: {train_mae:.3f} | Train Corr Coef: {corrcoef:.3f}")
+    test_loss, test_mae, corrcoef = val_test(net, test_dataloader, scaler, is_test=True)
+    tqdm.write(f"Test RMSE: {test_loss:.3f} | Test MAE: {test_mae:.3f} | Test Corr Coef: {corrcoef:.3f}")
 
-# 波ごとに正規化
+    plot_predict(net, train_dataloader, location2id, scaler, os.path.join(args.mode, "train"))
+    plot_predict(net, test_dataloader, location2id, scaler, args.mode)
