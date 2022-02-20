@@ -123,24 +123,16 @@ def run(
         train_loss, train_mae = train(net, optimizer, train_dataloader, scaler)
         train_loss_list.append(train_loss)
         train_mae_list.append(train_mae)
-        if mode == "Train And Val":
-            val_loss, val_mae = val(net, val_dataloader, scaler)
-            val_loss_list.append(val_loss)
-            val_mae_list.append(val_mae)
-        if mode == "Leak":
-            val_loss, val_mae = test(net, val_dataloader, scaler)
-            val_loss_list.append(val_loss)
-            val_mae_list.append(val_mae)
+        val_loss, val_mae, _ = val_test(net, val_dataloader, scaler, is_test=False)
+        val_loss_list.append(val_loss)
+        val_mae_list.append(val_mae)
         pbar.update(1)
+        if early_stopping(net, val_loss):
+            break
         desc_str = f"Train RMSE: {train_loss:.3f} | Val RMSE: {val_loss:.3f} | Train MAE: {train_mae:.3f} | Val MAE: {val_mae:.3f} | Best Val RMSE: {early_stopping.best_value:.3f} | EaryStopping Counter: {early_stopping.counter}/{early_stopping.patience}"
         desc.set_description(desc_str)
-        if val_dataloader is not None:
-            if early_stopping(net, val_loss, val_mae):
-                break
-    if val_dataloader is not None:
-        net.load_state_dict(early_stopping.state_dict)
-    epoch = max(5, epoch - patience)
-    return epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net
+    net.load_state_dict(early_stopping.best_state_dict)
+    return train_loss_list, val_loss_list, train_mae_list, val_mae_list, net
 
 
 def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list):
