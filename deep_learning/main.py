@@ -66,23 +66,10 @@ def val(net, dataloader, scaler, transform):
                 mae += abs(y_inverse - t_inverse).sum()
     rmse = (rmse / dataloader.dataset.size) ** 0.5
     mae = mae / dataloader.dataset.size
-    return loss, mae
-
-
-def test(net, dataloader, scaler, transform):
-    net.eval()
-    loss = 0.0
-    mae = 0.0
-    with torch.no_grad():
-        for enc_X, dec_X, t, location in dataloader:
-            enc_X = enc_X.to(DEVICE)
-            dec_X = dec_X.to(DEVICE)
-            t = t.to(DEVICE)
-            y = net.test(enc_X, dec_X, t.shape[-1])
-            loss += F.mse_loss(y, t, reduction="sum").detach().item()
-            if transform == "scaled":
-                mae += F.l1_loss(y, t, reduction="sum").detach().item()
-            else:
+    if is_test:
+        corrcoef = np.corrcoef(np.array([y_all, t_all]))[0][1]
+    else:
+        corrcoef = None
     return rmse, mae, corrcoef
 
 
