@@ -146,31 +146,31 @@ def run(
     return epoch, train_loss_list, val_loss_list, train_mae_list, val_mae_list, net
 
 
-def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list, suffix):
+def plot_history(train_loss_list, val_loss_list, train_mae_list, val_mae_list):
     plt.figure()
     plt.plot(train_loss_list, label="train")
-    if val_loss_list is not None:
-        plt.plot(val_loss_list, label="val")
+    plt.plot(val_loss_list, label="val")
     plt.legend()
     plt.title("loss")
-    plt.savefig(f"deep_learning/result/loss_{suffix}.png")
+    plt.savefig("deep_learning/result/loss.png")
     plt.figure()
     plt.plot(train_mae_list, label="train")
-    if val_mae_list is not None:
-        plt.plot(val_mae_list, label="val")
+    plt.plot(val_mae_list, label="val")
     plt.legend()
     plt.title("mae")
-    plt.savefig(f"deep_learning/result/mae_{suffix}.png")
+    plt.savefig("deep_learning/result/mae.png")
 
 
-def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
+def plot_predict(net, dataloader, location2id, scaler, mode):
     X, _, t, _ = dataloader.dataset[0]
     X_seq = len(X)
     t_seq = len(t)
+    y_all_location = []
+    t_all_location = []
     for location_str, location_id in tqdm(location2id.items(), leave=False):
         net.eval()
-        y_inverse = []
-        t_inverse = []
+        y_each_location = []
+        t_each_location = []
         cnt = 0
         is_first = True
         with torch.no_grad():
@@ -183,30 +183,36 @@ def plot_predict(net, dataloader, location2id, scaler, mode, suffix):
                 if len(t) == 0:
                     continue
                 if is_first:
-                    t_inverse += inverse_scaler(enc_X[[0]], location[[0]], location_num, scaler).tolist()
+                    if scaler is None:
+                        t_each_location += enc_X[[0]].numpy().reshape(-1).tolist()
+                    else:
+                        t_each_location += inverse_scaler(enc_X[[0]], location[[0]], location_num, scaler).tolist()
                     is_first = False
                 enc_X = enc_X.to(DEVICE)
                 dec_X = dec_X.to(DEVICE)
                 t = t.to(DEVICE)
-                if "/train" in mode:
-                    y = net(enc_X, dec_X)
+                y = net.test(enc_X, dec_X, t.shape[-1])
+                y_all_location += y.cpu().numpy().reshape(-1).tolist()
+                t_all_location += t.cpu().numpy().reshape(-1).tolist()
+                if scaler is None:
+                    y_each_location += y.cpu().numpy().reshape(-1).tolist()
+                    t_each_location += t.cpu().numpy().reshape(-1).tolist()
                 else:
-                    y = net.test(enc_X, dec_X, t.shape[-1])
-                y_inverse += inverse_scaler(y, location, location_num, scaler).tolist()
-                t_inverse += inverse_scaler(t, location, location_num, scaler).tolist()
-                cnt += len(y_inverse)
-        mae = abs(np.array(y_inverse) - np.array(t_inverse[X_seq:])).sum()
+                    y_each_location += inverse_scaler(y, location, location_num, scaler).tolist()
+                    t_each_location += inverse_scaler(t, location, location_num, scaler).tolist()
+                cnt += len(y_each_location)
+        mae = abs(np.array(y_each_location) - np.array(t_each_location[X_seq:])).sum()
         mae /= cnt
         fig, ax = plt.subplots()
-        for i in range(0, len(y_inverse), t_seq):
+        for i in range(0, len(y_each_location), t_seq):
             if i > 0:
-                ax.plot(range(X_seq + i - 1, X_seq + i + 1), y_inverse[i - 1 : i + 1], color="C0", linestyle="--")
-            ax.plot(range(X_seq + i, X_seq + i + t_seq), y_inverse[i : i + t_seq], color="C0")
+                ax.plot(range(X_seq + i - 1, X_seq + i + 1), y_each_location[i - 1 : i + 1], color="C0", linestyle="--")
+            ax.plot(range(X_seq + i, X_seq + i + t_seq), y_each_location[i : i + t_seq], color="C0")
         ax.lines[0].set_label("predict")
-        ax.plot(t_inverse, label="ground truth", color="C1")
+        ax.plot(t_each_location, label="ground truth", color="C1")
         ax.legend()
         ax.set_title(f"{location_str}_{mae:.1f}.png")
-        fig.savefig(f"deep_learning/result/{mode}/{location_str}_{suffix}.png")
+        fig.savefig(f"deep_learning/result/{mode}/{location_str}.png")
         plt.close(fig)
 
 
