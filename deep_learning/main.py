@@ -31,22 +31,22 @@ def train(net, optimizer, dataloader, scaler, transform):
         batch_loss = F.mse_loss(y, t) ** 0.5
         batch_loss.backward()
         optimizer.step()
-        loss += F.mse_loss(y, t, reduction="sum").detach().item()
-        if transform == "scaled":
+            rmse += ((y - t) ** 2).sum().detach().item()
             mae += F.l1_loss(y, t, reduction="sum").detach().item()
         else:
             location_num = dataloader.dataset.location_num
             y_inverse = inverse_scaler(y, location, location_num, scaler)
             t_inverse = inverse_scaler(t, location, location_num, scaler)
+            rmse += ((y_inverse - t_inverse) ** 2).sum()
             mae += abs(y_inverse - t_inverse).sum()
-    loss = (loss / dataloader.dataset.size) ** 0.5
+    rmse = (rmse / dataloader.dataset.size) ** 0.5
     mae = mae / dataloader.dataset.size
-    return loss, mae
+    return rmse, mae
 
 
 def val(net, dataloader, scaler, transform):
     net.eval()
-    loss = 0.0
+    rmse = 0.0
     mae = 0.0
     with torch.no_grad():
         for enc_X, dec_X, t, location in dataloader:
@@ -54,15 +54,15 @@ def val(net, dataloader, scaler, transform):
             dec_X = dec_X.to(DEVICE)
             t = t.to(DEVICE)
             y = net(enc_X, dec_X)
-            loss += F.mse_loss(y, t, reduction="sum").detach().item()
-            if transform == "scaled":
+                rmse += ((y - t) ** 2).sum().item()
                 mae += F.l1_loss(y, t, reduction="sum").detach().item()
             else:
                 location_num = dataloader.dataset.location_num
                 y_inverse = inverse_scaler(y, location, location_num, scaler)
                 t_inverse = inverse_scaler(t, location, location_num, scaler)
+                rmse += ((y_inverse - t_inverse) ** 2).sum()
                 mae += abs(y_inverse - t_inverse).sum()
-    loss = (loss / dataloader.dataset.size) ** 0.5
+    rmse = (rmse / dataloader.dataset.size) ** 0.5
     mae = mae / dataloader.dataset.size
     return loss, mae
 
@@ -81,13 +81,7 @@ def test(net, dataloader, scaler, transform):
             if transform == "scaled":
                 mae += F.l1_loss(y, t, reduction="sum").detach().item()
             else:
-                location_num = dataloader.dataset.location_num
-                y_inverse = inverse_scaler(y, location, location_num, scaler)
-                t_inverse = inverse_scaler(t, location, location_num, scaler)
-                mae += abs(y_inverse - t_inverse).sum()
-    loss = (loss / dataloader.dataset.size) ** 0.5
-    mae = mae / dataloader.dataset.size
-    return loss, mae
+    return rmse, mae, corrcoef
 
 
 def run(
