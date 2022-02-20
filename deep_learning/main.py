@@ -215,7 +215,7 @@ if __name__ == "__main__":
     parser.add_argument("--t_seq", type=int, default=4)
     parser.add_argument("--total_epoch", type=int, default=100000)
     parser.add_argument("--patience", type=int, default=50)
-    parser.add_argument("--batch_size", type=int, default=8192)
+    parser.add_argument("--batch_size", type=int, default=32)
     args = parser.parse_args()
 
     train_dataloader, val_dataloader, test_dataloader, scaler, location2id = get_dataloader(
