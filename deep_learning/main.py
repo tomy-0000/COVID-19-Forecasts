@@ -213,6 +213,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", choices=["World", "Japan", "Tokyo"], default="World")
     parser.add_argument("--X_seq", type=int, default=10)
     parser.add_argument("--t_seq", type=int, default=4)
+    parser.add_argument("--total_epoch", type=int, default=100000)
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=8192)
     args = parser.parse_args()
